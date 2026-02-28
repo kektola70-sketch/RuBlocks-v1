@@ -9,20 +9,25 @@
 <body>
 
     <div class="login-container">
-        <h1>Вход в Rublocks</h1>
+        <h1>Rublocks ID</h1>
         
         <div class="input-group">
-            <input type="email" id="email" placeholder="Email" autocomplete="off">
+            <input type="email" id="email" placeholder="Email или Телефон">
             <input type="password" id="password" placeholder="Пароль">
+        </div>
+
+        <!-- Проверка на робота -->
+        <div class="captcha-box">
+            <input type="checkbox" id="botCheck">
+            <label for="botCheck">Я не робот (Подтверждение)</label>
         </div>
         
         <div class="button-group">
-            <button id="loginBtn">Войти</button> <!-- Только кнопка входа -->
+            <button id="loginBtn">Войти</button>
         </div>
 
         <p id="status-message"></p>
 
-        <!-- Ссылка на другой файл -->
         <p style="margin-top: 20px; font-size: 14px;">
             Нет аккаунта? <a href="register.html" style="color: #00b06f;">Создать аккаунт</a>
         </p>
