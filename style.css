@@ -1,0 +1,93 @@
+* {
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    background-color: #232527; /* Темно-серый фон */
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+}
+
+.login-container {
+    background-color: #393b3d;
+    padding: 30px;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 400px;
+    text-align: center;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+
+h1 {
+    margin-bottom: 25px;
+    font-weight: 800;
+    letter-spacing: 1px;
+}
+
+.input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+input {
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid #555;
+    background-color: #232527;
+    color: white;
+    font-size: 16px;
+    outline: none;
+}
+
+input:focus {
+    border-color: white;
+}
+
+.button-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+button {
+    padding: 12px;
+    border-radius: 8px;
+    border: none;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+#registerBtn {
+    background-color: #00b06f; /* Зеленый как у Roblox */
+    color: white;
+}
+
+#registerBtn:hover {
+    background-color: #008c58;
+}
+
+.secondary {
+    background-color: transparent;
+    border: 1px solid #666;
+    color: #ccc;
+}
+
+.secondary:hover {
+    border-color: white;
+    color: white;
+}
+
+#status-message {
+    margin-top: 15px;
+    font-size: 14px;
+    min-height: 20px;
+}
