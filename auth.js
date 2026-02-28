@@ -22,77 +22,86 @@ const regBtn = document.getElementById('registerBtn');
 const loginBtn = document.getElementById('loginBtn');
 const statusMsg = document.getElementById('status-message');
 
-// --- ОТКЛЮЧЕНИЕ ЗАПОМИНАНИЯ (СБРОС ВХОДА) ---
-// Как только открывается эта страница, мы выходим из аккаунта
+// 1. ПРИНУДИТЕЛЬНЫЙ ВЫХОД ПРИ ЗАГРУЗКЕ
+// Чтобы старые глючные сессии не мешали
 signOut(auth).then(() => {
-    console.log("Аккаунт сброшен. Требуется вход.");
-    statusMsg.innerText = "Введите данные для входа";
-}).catch((error) => {
-    console.error("Ошибка сброса:", error);
-});
+    console.log("Сессия очищена. Ждем действий пользователя.");
+}).catch((error) => console.error(error));
 
 
-// --- ЛОГИКА КНОПОК ---
-
-// 1. Регистрация
+// 2. ЛОГИКА РЕГИСТРАЦИИ
 regBtn.addEventListener('click', () => {
     const email = emailInput.value;
     const password = passInput.value;
 
+    // Простая проверка
+    if (!email.includes('@')) {
+        statusMsg.innerText = "Введите нормальный Email!";
+        statusMsg.style.color = "red";
+        return;
+    }
     if (password.length < 6) {
-        statusMsg.innerText = "Пароль слишком короткий!";
+        statusMsg.innerText = "Пароль должен быть от 6 символов!";
         statusMsg.style.color = "red";
         return;
     }
 
-    statusMsg.innerText = "Регистрация...";
+    statusMsg.innerText = "Создаю аккаунт...";
     statusMsg.style.color = "yellow";
 
+    // Отправляем запрос в Firebase
     createUserWithEmailAndPassword(auth, email, password)
         .then((userCredential) => {
-            // УСПЕХ -> ПЕРЕХОДИМ В МЕНЮ ВРУЧНУЮ
-            statusMsg.innerText = "Успех! Переход...";
+            // ТОЛЬКО ЗДЕСЬ, КОГДА ВСЁ УСПЕШНО:
+            statusMsg.innerText = "Успех! Аккаунт создан.";
             statusMsg.style.color = "lime";
+            
+            // Ждем 1.5 секунды, чтобы пользователь прочитал сообщение, и перекидываем
             setTimeout(() => {
                 window.location.href = "menu.html";
-            }, 1000);
+            }, 1500);
         })
         .catch((error) => {
-            showError(error);
+            // ЕСЛИ ОШИБКА - ОСТАЕМСЯ ТУТ И ПИШЕМ ОШИБКУ
+            console.error("Ошибка регистрации:", error);
+            statusMsg.style.color = "red";
+            
+            if (error.code === 'auth/email-already-in-use') {
+                statusMsg.innerText = "Этот Email уже занят! Попробуй кнопку Вход.";
+            } else if (error.code === 'auth/invalid-email') {
+                statusMsg.innerText = "Некорректный Email.";
+            } else {
+                statusMsg.innerText = "Ошибка: " + error.message;
+            }
         });
 });
 
-// 2. Вход
+// 3. ЛОГИКА ВХОДА
 loginBtn.addEventListener('click', () => {
     const email = emailInput.value;
     const password = passInput.value;
 
-    statusMsg.innerText = "Вход...";
+    statusMsg.innerText = "Вхожу...";
     statusMsg.style.color = "yellow";
 
     signInWithEmailAndPassword(auth, email, password)
         .then((userCredential) => {
-            // УСПЕХ -> ПЕРЕХОДИМ В МЕНЮ ВРУЧНУЮ
-            statusMsg.innerText = "Вход выполнен! Переход...";
+            // ТОЛЬКО ЗДЕСЬ ПЕРЕХОДИМ
+            statusMsg.innerText = "Пароль верный! Загрузка...";
             statusMsg.style.color = "lime";
+            
             setTimeout(() => {
                 window.location.href = "menu.html";
-            }, 1000);
+            }, 1500);
         })
         .catch((error) => {
-            showError(error);
+            console.error("Ошибка входа:", error);
+            statusMsg.style.color = "red";
+            
+            if (error.code === 'auth/invalid-credential') {
+                statusMsg.innerText = "Неверная почта или пароль!";
+            } else {
+                statusMsg.innerText = "Ошибка: " + error.message;
+            }
         });
 });
-
-// Показ ошибок
-function showError(error) {
-    console.error(error);
-    statusMsg.style.color = "red";
-    if (error.code === 'auth/invalid-credential') {
-        statusMsg.innerText = "Ошибка: Неверный Email или пароль!";
-    } else if (error.code === 'auth/email-already-in-use') {
-        statusMsg.innerText = "Ошибка: Этот Email уже занят!";
-    } else {
-        statusMsg.innerText = "Ошибка: " + error.code;
-    }
-}
