@@ -1,7 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-// Твой конфиг
 const firebaseConfig = {
   apiKey: "AIzaSyBtElNGI8_4BSDO2XRnTjSw7AnjDQb83Kk",
   authDomain: "rublocks-v1.firebaseapp.com",
@@ -15,34 +14,51 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
-// Элементы
 const emailInput = document.getElementById('email');
 const passInput = document.getElementById('password');
 const regBtn = document.getElementById('registerBtn');
 const loginBtn = document.getElementById('loginBtn');
+const botCheck = document.getElementById('botCheck'); // Галочка робота
 const statusMsg = document.getElementById('status-message');
 
-// --- 1. АВТОМАТИЧЕСКАЯ ПРОВЕРКА (ЗАПОМИНАНИЕ) ---
-// Этот код срабатывает сам при запуске страницы
-onAuthStateChanged(auth, (user) => {
-    if (user) {
-        // Если Firebase помнит пользователя
-        console.log("Найден активный сеанс: " + user.email);
-        
-        if(statusMsg) {
-            statusMsg.innerText = "Вход выполнен! Переход...";
-            statusMsg.style.color = "lime";
-        }
-        
-        // Сразу перекидываем в меню
-        window.location.href = "menu.html";
-    } else {
-        // Если пользователя нет - ничего не делаем, ждем ввода пароля
-        console.log("Пользователь не найден. Нужен вход.");
-    }
-});
+// Сброс сессии при заходе на страницу входа
+signOut(auth);
 
-// --- 2. ЛОГИКА РЕГИСТРАЦИИ (register.html) ---
+// --- ВХОД (index.html) ---
+if (loginBtn) {
+    loginBtn.addEventListener('click', () => {
+        // 1. ПРОВЕРКА РОБОТА
+        if (!botCheck.checked) {
+            statusMsg.innerText = "⛔ Подтвердите, что вы не робот!";
+            statusMsg.style.color = "red";
+            return;
+        }
+
+        const email = emailInput.value;
+        const password = passInput.value;
+
+        if(!email || !password) {
+            statusMsg.innerText = "Заполните все поля";
+            return;
+        }
+
+        statusMsg.innerText = "Вход...";
+        statusMsg.style.color = "yellow";
+
+        signInWithEmailAndPassword(auth, email, password)
+            .then(() => {
+                statusMsg.innerText = "Успех!";
+                statusMsg.style.color = "lime";
+                setTimeout(() => window.location.href = "menu.html", 1000);
+            })
+            .catch((error) => {
+                statusMsg.innerText = "Ошибка: " + error.message;
+                statusMsg.style.color = "red";
+            });
+    });
+}
+
+// --- РЕГИСТРАЦИЯ (register.html) ---
 if (regBtn) {
     regBtn.addEventListener('click', () => {
         const email = emailInput.value;
@@ -59,29 +75,9 @@ if (regBtn) {
 
         createUserWithEmailAndPassword(auth, email, password)
             .then(() => {
-                // onAuthStateChanged сработает сам и перекинет
-                statusMsg.innerText = "Успех!";
-            })
-            .catch((error) => {
-                statusMsg.innerText = "Ошибка: " + error.message;
-                statusMsg.style.color = "red";
-            });
-    });
-}
-
-// --- 3. ЛОГИКА ВХОДА (index.html) ---
-if (loginBtn) {
-    loginBtn.addEventListener('click', () => {
-        const email = emailInput.value;
-        const password = passInput.value;
-
-        statusMsg.innerText = "Вход...";
-        statusMsg.style.color = "yellow";
-
-        signInWithEmailAndPassword(auth, email, password)
-            .then(() => {
-                // onAuthStateChanged сработает сам и перекинет
-                statusMsg.innerText = "Успех!";
+                statusMsg.innerText = "Аккаунт создан! Входим...";
+                statusMsg.style.color = "lime";
+                setTimeout(() => window.location.href = "menu.html", 1000);
             })
             .catch((error) => {
                 statusMsg.innerText = "Ошибка: " + error.message;
