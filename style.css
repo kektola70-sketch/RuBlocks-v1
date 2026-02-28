@@ -1,28 +1,39 @@
-/* --- Стили для Меню --- */
+* {
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
 
+body {
+    background-color: #1e1e1e;
+    color: white;
+    margin: 0;
+}
+
+/* --- ШАПКА --- */
 .top-bar {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
-    background-color: #1e1e1e;
-    padding: 15px;
+    background-color: #252525;
+    padding: 10px 15px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     border-bottom: 1px solid #333;
-    z-index: 10;
+    z-index: 100;
+    height: 70px;
 }
 
 .user-info {
     display: flex;
     align-items: center;
-    gap: 15px;
+    gap: 10px;
 }
 
 .avatar-circle {
-    width: 50px;
-    height: 50px;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
     background-color: #333;
     overflow: hidden;
@@ -36,11 +47,11 @@
 
 .user-text h2 {
     margin: 0;
-    font-size: 18px;
+    font-size: 16px;
 }
 
 .status {
-    font-size: 12px;
+    font-size: 11px;
     color: #888;
 }
 
@@ -52,23 +63,123 @@
     padding: 5px 10px;
     font-size: 12px;
     background: #444;
+    color: white;
+    border: none;
+    border-radius: 5px;
 }
 
-/* Connections Section */
+/* --- КОЛОКОЛЬЧИК --- */
+.notification-box {
+    position: relative;
+    cursor: pointer;
+    margin-right: 5px;
+}
+
+.bell-icon {
+    font-size: 24px;
+}
+
+.badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background-color: #ff3b3b;
+    color: white;
+    border-radius: 50%;
+    padding: 2px 6px;
+    font-size: 10px;
+    font-weight: bold;
+    display: none; /* Скрыто по умолчанию */
+}
+
+/* Выпадающее окно уведомлений */
+.notif-dropdown {
+    position: absolute;
+    top: 40px;
+    right: -10px;
+    width: 280px;
+    background-color: #2d2d2d;
+    border: 1px solid #444;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    display: none;
+    padding: 10px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.notif-dropdown.active {
+    display: block;
+}
+
+.empty-msg {
+    text-align: center;
+    font-size: 12px;
+    color: #888;
+}
+
+/* Карточка запроса */
+.request-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #383838;
+    padding: 8px;
+    border-radius: 6px;
+    margin-bottom: 5px;
+}
+
+.request-item img {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+}
+
+.req-info {
+    flex: 1;
+    font-size: 12px;
+}
+
+.req-actions {
+    display: flex;
+    gap: 5px;
+}
+
+.btn-accept {
+    background: #00b06f;
+    border: none;
+    color: white;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.btn-decline {
+    background: #d32f2f;
+    border: none;
+    color: white;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+/* --- CONNECTIONS --- */
 .connections-section {
-    margin-top: 100px; /* Отступ от верхней панели */
-    padding: 20px;
+    margin-top: 80px;
+    padding: 15px;
 }
 
 .connections-list {
     display: flex;
-    overflow-x: auto; /* Горизонтальный скролл */
+    overflow-x: auto;
     gap: 15px;
     padding-bottom: 10px;
 }
 
 .friend-card {
-    min-width: 80px;
+    min-width: 70px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -76,26 +187,9 @@
     cursor: pointer;
 }
 
-.friend-card img {
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    background: #333;
-}
-
-.friend-card span {
-    font-size: 12px;
-    text-align: center;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    width: 100%;
-}
-
-/* Кнопка Add */
 .add-card .plus-icon {
-    width: 60px;
-    height: 60px;
+    width: 50px;
+    height: 50px;
     border-radius: 50%;
     border: 2px dashed #666;
     display: flex;
@@ -105,12 +199,16 @@
     color: #666;
 }
 
-.real-friends {
-    display: flex;
-    gap: 15px;
+.friend-card span {
+    font-size: 11px;
+    text-align: center;
+    width: 100%;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
 }
 
-/* Модальное окно поиска */
+/* --- MODAL --- */
 .modal {
     position: fixed;
     top: 0;
@@ -120,8 +218,8 @@
     background: rgba(0,0,0,0.8);
     display: flex;
     justify-content: center;
-    align-items: flex-end; /* Меню выезжает снизу или просто внизу для удобства на телефоне */
-    z-index: 100;
+    align-items: flex-end;
+    z-index: 200;
 }
 
 .modal.hidden {
@@ -141,52 +239,48 @@
 .modal-header {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 20px;
+    margin-bottom: 15px;
+}
+
+.search-bar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+#searchInput {
+    flex: 1;
+    padding: 10px;
+    border-radius: 5px;
+    border: none;
+    background: #444;
+    color: white;
+}
+
+#searchActionBtn {
+    padding: 0 15px;
+    background: #00b06f;
+    color: white;
+    border: none;
+    border-radius: 5px;
 }
 
 .players-list {
-    overflow-y: auto;
     flex: 1;
+    overflow-y: auto;
     display: flex;
     flex-direction: column;
     gap: 10px;
 }
 
-/* Карточка игрока в поиске */
 .player-search-card {
     background: #3a3a3a;
     padding: 10px;
-    border-radius: 10px;
+    border-radius: 8px;
     display: flex;
     align-items: center;
     gap: 10px;
 }
-
-.player-search-card img {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-}
-
-.player-info {
-    flex: 1;
-}
-
-.player-info h4 {
-    margin: 0;
-    font-size: 14px;
-}
-
-.status-dot {
-    display: inline-block;
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    margin-right: 5px;
-}
-
-.status-dot.online { background: #00b06f; }
-.status-dot.offline { background: #666; }
 
 .add-conn-btn {
     background: #00b06f;
@@ -196,3 +290,18 @@
     border-radius: 5px;
     font-size: 12px;
 }
+
+/* Login container styles (для index/register) */
+.login-container {
+    background-color: #393b3d;
+    padding: 30px;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 400px;
+    text-align: center;
+    margin: auto;
+    margin-top: 100px;
+}
+.input-group { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+input { padding: 12px; border-radius: 8px; border: 1px solid #555; background: #232527; color: white; width: 100%; }
+.button-group button { width: 100%; padding: 12px; background: #00b06f; color: white; border: none; border-radius: 8px; }
