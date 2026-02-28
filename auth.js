@@ -1,7 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-// Твой конфиг
 const firebaseConfig = {
   apiKey: "AIzaSyBtElNGI8_4BSDO2XRnTjSw7AnjDQb83Kk",
   authDomain: "rublocks-v1.firebaseapp.com",
@@ -15,93 +14,62 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
-// Элементы
+// Получаем элементы (они могут быть null, если мы на другой странице)
 const emailInput = document.getElementById('email');
 const passInput = document.getElementById('password');
-const regBtn = document.getElementById('registerBtn');
-const loginBtn = document.getElementById('loginBtn');
+const regBtn = document.getElementById('registerBtn'); // Есть только в register.html
+const loginBtn = document.getElementById('loginBtn'); // Есть только в index.html
 const statusMsg = document.getElementById('status-message');
 
-// 1. ПРИНУДИТЕЛЬНЫЙ ВЫХОД ПРИ ЗАГРУЗКЕ
-// Чтобы старые глючные сессии не мешали
-signOut(auth).then(() => {
-    console.log("Сессия очищена. Ждем действий пользователя.");
-}).catch((error) => console.error(error));
+// Сбрасываем старые входы при загрузке любой из этих страниц
+signOut(auth);
 
+// --- ЛОГИКА ДЛЯ СТРАНИЦЫ РЕГИСТРАЦИИ ---
+if (regBtn) {
+    regBtn.addEventListener('click', () => {
+        const email = emailInput.value;
+        const password = passInput.value;
 
-// 2. ЛОГИКА РЕГИСТРАЦИИ
-regBtn.addEventListener('click', () => {
-    const email = emailInput.value;
-    const password = passInput.value;
-
-    // Простая проверка
-    if (!email.includes('@')) {
-        statusMsg.innerText = "Введите нормальный Email!";
-        statusMsg.style.color = "red";
-        return;
-    }
-    if (password.length < 6) {
-        statusMsg.innerText = "Пароль должен быть от 6 символов!";
-        statusMsg.style.color = "red";
-        return;
-    }
-
-    statusMsg.innerText = "Создаю аккаунт...";
-    statusMsg.style.color = "yellow";
-
-    // Отправляем запрос в Firebase
-    createUserWithEmailAndPassword(auth, email, password)
-        .then((userCredential) => {
-            // ТОЛЬКО ЗДЕСЬ, КОГДА ВСЁ УСПЕШНО:
-            statusMsg.innerText = "Успех! Аккаунт создан.";
-            statusMsg.style.color = "lime";
-            
-            // Ждем 1.5 секунды, чтобы пользователь прочитал сообщение, и перекидываем
-            setTimeout(() => {
-                window.location.href = "menu.html";
-            }, 1500);
-        })
-        .catch((error) => {
-            // ЕСЛИ ОШИБКА - ОСТАЕМСЯ ТУТ И ПИШЕМ ОШИБКУ
-            console.error("Ошибка регистрации:", error);
+        if (password.length < 6) {
+            statusMsg.innerText = "Пароль слишком короткий!";
             statusMsg.style.color = "red";
-            
-            if (error.code === 'auth/email-already-in-use') {
-                statusMsg.innerText = "Этот Email уже занят! Попробуй кнопку Вход.";
-            } else if (error.code === 'auth/invalid-email') {
-                statusMsg.innerText = "Некорректный Email.";
-            } else {
+            return;
+        }
+
+        statusMsg.innerText = "Создание...";
+        statusMsg.style.color = "yellow";
+
+        createUserWithEmailAndPassword(auth, email, password)
+            .then(() => {
+                statusMsg.innerText = "Успех! Переход в меню...";
+                statusMsg.style.color = "lime";
+                setTimeout(() => window.location.href = "menu.html", 1000);
+            })
+            .catch((error) => {
                 statusMsg.innerText = "Ошибка: " + error.message;
-            }
-        });
-});
+                statusMsg.style.color = "red";
+            });
+    });
+}
 
-// 3. ЛОГИКА ВХОДА
-loginBtn.addEventListener('click', () => {
-    const email = emailInput.value;
-    const password = passInput.value;
+// --- ЛОГИКА ДЛЯ СТРАНИЦЫ ВХОДА ---
+if (loginBtn) {
+    loginBtn.addEventListener('click', () => {
+        const email = emailInput.value;
+        const password = passInput.value;
 
-    statusMsg.innerText = "Вхожу...";
-    statusMsg.style.color = "yellow";
+        statusMsg.innerText = "Вход...";
+        statusMsg.style.color = "yellow";
 
-    signInWithEmailAndPassword(auth, email, password)
-        .then((userCredential) => {
-            // ТОЛЬКО ЗДЕСЬ ПЕРЕХОДИМ
-            statusMsg.innerText = "Пароль верный! Загрузка...";
-            statusMsg.style.color = "lime";
-            
-            setTimeout(() => {
-                window.location.href = "menu.html";
-            }, 1500);
-        })
-        .catch((error) => {
-            console.error("Ошибка входа:", error);
-            statusMsg.style.color = "red";
-            
-            if (error.code === 'auth/invalid-credential') {
-                statusMsg.innerText = "Неверная почта или пароль!";
-            } else {
-                statusMsg.innerText = "Ошибка: " + error.message;
-            }
-        });
-});
+        signInWithEmailAndPassword(auth, email, password)
+            .then(() => {
+                statusMsg.innerText = "Успех! Переход в меню...";
+                statusMsg.style.color = "lime";
+                setTimeout(() => window.location.href = "menu.html", 1000);
+            })
+            .catch((error) => {
+                statusMsg.innerText = "Ошибка: " + error.message; // Тут покажет, если пароль неверный
+                statusMsg.style.color = "red";
+            });
+    });
+}
