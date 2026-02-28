@@ -1,9 +1,7 @@
-// Используем CDN ссылки, так как в Acode нет Node.js
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics.js";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-// Твоя конфигурация
+// Твой конфиг
 const firebaseConfig = {
   apiKey: "AIzaSyBtElNGI8_4BSDO2XRnTjSw7AnjDQb83Kk",
   authDomain: "rublocks-v1.firebaseapp.com",
@@ -14,79 +12,57 @@ const firebaseConfig = {
   measurementId: "G-82D3V3YJ7V"
 };
 
-// Инициализация Firebase
 const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
-const auth = getAuth(app); // Инициализация Аутентификации
+const auth = getAuth(app);
 
-// Получаем элементы из HTML
 const emailInput = document.getElementById('email');
 const passInput = document.getElementById('password');
 const regBtn = document.getElementById('registerBtn');
 const loginBtn = document.getElementById('loginBtn');
 const statusMsg = document.getElementById('status-message');
 
-// Логика кнопки РЕГИСТРАЦИЯ
-regBtn.addEventListener('click', () => {
+// Проверка: Если мы УЖЕ вошли, переходим в меню
+onAuthStateChanged(auth, (user) => {
+    if (user) {
+        console.log("Пользователь найден, переход в меню...");
+        window.location.href = "menu.html";
+    }
+});
+
+// Регистрация
+regBtn.addEventListener('click', async () => {
     const email = emailInput.value;
     const password = passInput.value;
 
-    if (!email || !password) {
-        showMessage("Введите Email и пароль", "red");
+    if (password.length < 6) {
+        alert("Пароль слишком короткий!");
         return;
     }
 
-    showMessage("Регистрация...", "yellow");
-
-    createUserWithEmailAndPassword(auth, email, password)
-        .then((userCredential) => {
-            const user = userCredential.user;
-            showMessage(`Успех! Создан ID: ${user.uid}`, "lime");
-            console.log(user);
-            // Тут позже сделаем переход в игру
-        })
-        .catch((error) => {
-            handleError(error);
-        });
+    statusMsg.innerText = "Создание аккаунта...";
+    
+    try {
+        await createUserWithEmailAndPassword(auth, email, password);
+        // Не нужно вручную делать redirect, сработает onAuthStateChanged выше
+        statusMsg.innerText = "Успех! Входим...";
+        statusMsg.style.color = "lime";
+    } catch (error) {
+        statusMsg.innerText = "Ошибка: " + error.message;
+        statusMsg.style.color = "red";
+    }
 });
 
-// Логика кнопки ВХОД (на будущее)
-loginBtn.addEventListener('click', () => {
+// Вход
+loginBtn.addEventListener('click', async () => {
     const email = emailInput.value;
     const password = passInput.value;
 
-    if (!email || !password) {
-        showMessage("Введите Email и пароль", "red");
-        return;
+    statusMsg.innerText = "Вход...";
+    
+    try {
+        await signInWithEmailAndPassword(auth, email, password);
+    } catch (error) {
+        statusMsg.innerText = "Ошибка входа: " + error.message;
+        statusMsg.style.color = "red";
     }
-
-    showMessage("Вход...", "yellow");
-
-    signInWithEmailAndPassword(auth, email, password)
-        .then((userCredential) => {
-            const user = userCredential.user;
-            showMessage(`Вход выполнен! Привет, ${user.email}`, "lime");
-        })
-        .catch((error) => {
-            handleError(error);
-        });
 });
-
-// Вспомогательные функции
-function showMessage(text, color) {
-    statusMsg.innerText = text;
-    statusMsg.style.color = color;
-}
-
-function handleError(error) {
-    console.error(error);
-    if (error.code === 'auth/email-already-in-use') {
-        showMessage("Этот Email уже занят!", "red");
-    } else if (error.code === 'auth/weak-password') {
-        showMessage("Пароль должен быть от 6 символов", "red");
-    } else if (error.code === 'auth/invalid-credential') {
-        showMessage("Неверный логин или пароль", "red");
-    } else {
-        showMessage("Ошибка: " + error.message, "red");
-    }
-}
