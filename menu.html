@@ -19,12 +19,26 @@
                 <span class="status online">Online</span>
             </div>
         </div>
-        <button id="logoutBtn" class="small-btn">Выйти</button>
+
+        <div style="display:flex; align-items:center; gap: 15px;">
+            <!-- Колокольчик Уведомлений -->
+            <div class="notification-box" id="notifBtn">
+                <span class="bell-icon">🔔</span>
+                <span class="badge" id="notifBadge">0</span>
+                
+                <!-- Выпадающее меню с заявками -->
+                <div class="notif-dropdown" id="notifDropdown">
+                    <p class="empty-msg">Нет новых заявок</p>
+                </div>
+            </div>
+
+            <button id="logoutBtn" class="small-btn">Выйти</button>
+        </div>
     </header>
 
     <!-- Секция друзей -->
     <section class="connections-section">
-        <h3>Connections (Друзья)</h3>
+        <h3>Connections</h3>
         <div class="connections-list">
             <!-- Кнопка поиска -->
             <div class="friend-card add-card" id="openSearchBtn">
@@ -32,8 +46,8 @@
                 <span>Поиск</span>
             </div>
             
-            <!-- Сюда будут добавляться подтвержденные друзья (позже) -->
-            <div id="friendsList" style="display:flex; gap:10px;"></div>
+            <!-- Сюда будут добавляться друзья (в следующем шаге) -->
+            <div id="friendsContainer" style="display:flex; gap:10px;"></div>
         </div>
     </section>
 
@@ -45,15 +59,13 @@
                 <button id="closeModal">Закрыть</button>
             </div>
 
-            <!-- Поле поиска -->
-            <div style="margin-bottom: 15px; display: flex; gap: 5px;">
-                <input type="text" id="searchInput" placeholder="Введите никнейм..." style="flex:1;">
-                <button id="searchActionBtn" style="background:#00b06f;">Найти</button>
+            <div class="search-bar">
+                <input type="text" id="searchInput" placeholder="Введите никнейм...">
+                <button id="searchActionBtn">Найти</button>
             </div>
 
-            <!-- Результаты -->
             <div class="players-list" id="searchResults">
-                <p style="text-align:center; color:#888;">Введите имя или нажмите "Найти" чтобы увидеть всех.</p>
+                <p style="text-align:center; color:#888; margin-top:20px;">Введите имя для поиска</p>
             </div>
         </div>
     </div>
