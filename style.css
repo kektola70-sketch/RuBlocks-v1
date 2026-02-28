@@ -1,307 +1,69 @@
-* {
-    box-sizing: border-box;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-}
-
-body {
-    background-color: #1e1e1e;
-    color: white;
-    margin: 0;
-}
+* { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+body { background-color: #1e1e1e; color: white; margin: 0; }
 
 /* --- ШАПКА --- */
 .top-bar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    background-color: #252525;
-    padding: 10px 15px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid #333;
-    z-index: 100;
-    height: 70px;
+    position: fixed; top: 0; left: 0; width: 100%; height: 70px;
+    background-color: #252525; display: flex; justify-content: space-between;
+    align-items: center; padding: 0 15px; border-bottom: 1px solid #333; z-index: 100;
 }
+.user-info { display: flex; align-items: center; gap: 10px; }
+.avatar-circle { width: 45px; height: 45px; border-radius: 50%; background: #333; overflow: hidden; border: 2px solid #00b06f; }
+.avatar-circle img { width: 100%; height: 100%; }
+.user-text h2 { margin: 0; font-size: 16px; font-weight: bold; }
+.user-id-tag { font-size: 11px; color: #888; }
+.verified-icon { color: #00b0ff; font-size: 14px; margin-left: 5px; }
 
-.user-info {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.avatar-circle {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background-color: #333;
-    overflow: hidden;
-    border: 2px solid #00b06f;
-}
-
-.avatar-circle img {
-    width: 100%;
-    height: 100%;
-}
-
-.user-text h2 {
-    margin: 0;
-    font-size: 16px;
-}
-
-.status {
-    font-size: 11px;
-    color: #888;
-}
-
-.status.online {
-    color: #00b06f;
-}
-
-.small-btn {
-    padding: 5px 10px;
-    font-size: 12px;
-    background: #444;
-    color: white;
-    border: none;
-    border-radius: 5px;
-}
+/* Иконки управления */
+.icon-btn { background: none; border: none; font-size: 22px; cursor: pointer; }
+.small-btn { padding: 5px 10px; font-size: 12px; background: #444; color: white; border: none; border-radius: 5px; }
 
 /* --- КОЛОКОЛЬЧИК --- */
-.notification-box {
-    position: relative;
-    cursor: pointer;
-    margin-right: 5px;
-}
+.notification-box { position: relative; cursor: pointer; margin-right: 5px; }
+.bell-icon { font-size: 24px; }
+.badge { position: absolute; top: -5px; right: -5px; background-color: #ff3b3b; color: white; border-radius: 50%; padding: 2px 6px; font-size: 10px; display: none; }
+.notif-dropdown { position: absolute; top: 40px; right: -10px; width: 280px; background-color: #2d2d2d; border: 1px solid #444; border-radius: 8px; display: none; padding: 10px; z-index: 200; }
+.notif-dropdown.active { display: block; }
 
-.bell-icon {
-    font-size: 24px;
-}
-
-.badge {
-    position: absolute;
-    top: -5px;
-    right: -5px;
-    background-color: #ff3b3b;
-    color: white;
-    border-radius: 50%;
-    padding: 2px 6px;
-    font-size: 10px;
-    font-weight: bold;
-    display: none; /* Скрыто по умолчанию */
-}
-
-/* Выпадающее окно уведомлений */
-.notif-dropdown {
-    position: absolute;
-    top: 40px;
-    right: -10px;
-    width: 280px;
-    background-color: #2d2d2d;
-    border: 1px solid #444;
-    border-radius: 8px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-    display: none;
-    padding: 10px;
-    max-height: 300px;
-    overflow-y: auto;
-}
-
-.notif-dropdown.active {
-    display: block;
-}
-
-.empty-msg {
-    text-align: center;
-    font-size: 12px;
-    color: #888;
-}
-
-/* Карточка запроса */
-.request-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    background: #383838;
-    padding: 8px;
-    border-radius: 6px;
-    margin-bottom: 5px;
-}
-
-.request-item img {
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-}
-
-.req-info {
-    flex: 1;
-    font-size: 12px;
-}
-
-.req-actions {
-    display: flex;
-    gap: 5px;
-}
-
-.btn-accept {
-    background: #00b06f;
-    border: none;
-    color: white;
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    cursor: pointer;
-}
-
-.btn-decline {
-    background: #d32f2f;
-    border: none;
-    color: white;
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    cursor: pointer;
-}
+/* Заявки */
+.request-item { display: flex; align-items: center; gap: 10px; background: #383838; padding: 8px; border-radius: 6px; margin-bottom: 5px; }
+.request-item img { width: 30px; height: 30px; border-radius: 50%; }
+.req-actions button { border: none; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; margin-left: 5px; color: white; }
+.btn-accept { background: #00b06f; }
+.btn-decline { background: #d32f2f; }
 
 /* --- CONNECTIONS --- */
-.connections-section {
-    margin-top: 80px;
-    padding: 15px;
-}
+.connections-section { margin-top: 80px; padding: 15px; }
+.connections-list { display: flex; gap: 15px; overflow-x: auto; padding-bottom: 10px; }
+.friend-card { min-width: 70px; display: flex; flex-direction: column; align-items: center; gap: 5px; cursor: pointer; }
+.friend-card img { width: 50px; height: 50px; border-radius: 50%; border: 2px solid #333; }
+.friend-card span { font-size: 11px; width: 70px; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.add-card .plus-icon { width: 50px; height: 50px; border-radius: 50%; border: 2px dashed #666; display: flex; justify-content: center; align-items: center; font-size: 24px; color: #666; }
 
-.connections-list {
-    display: flex;
-    overflow-x: auto;
-    gap: 15px;
-    padding-bottom: 10px;
-}
+/* --- LOGIN & CAPTCHA --- */
+.login-container { width: 90%; max-width: 400px; margin: 100px auto; text-align: center; background: #2d2d2d; padding: 30px; border-radius: 15px; }
+.input-group input { width: 100%; padding: 12px; margin-bottom: 10px; background: #333; border: 1px solid #555; color: white; border-radius: 5px; }
+.button-group button { width: 100%; padding: 12px; background: #00b06f; color: white; border: none; border-radius: 8px; font-weight: bold; }
 
-.friend-card {
-    min-width: 70px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 5px;
-    cursor: pointer;
-}
+.captcha-box { background: #444; padding: 10px; margin: 15px 0; border-radius: 5px; display: flex; align-items: center; gap: 10px; border: 1px solid #666; justify-content: center; }
+.captcha-box input { width: 20px; height: 20px; }
 
-.add-card .plus-icon {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    border: 2px dashed #666;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 24px;
-    color: #666;
-}
+/* --- MODALS & SETTINGS --- */
+.modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; z-index: 300; }
+.modal.hidden { display: none; }
+.modal-content { background: #2d2d2d; width: 90%; max-width: 400px; padding: 20px; border-radius: 15px; display: flex; flex-direction: column; max-height: 80vh; }
+.modal-header { display: flex; justify-content: space-between; margin-bottom: 20px; border-bottom: 1px solid #444; padding-bottom: 10px; }
+.modal-header button { background: none; border: none; color: white; font-size: 20px; }
 
-.friend-card span {
-    font-size: 11px;
-    text-align: center;
-    width: 100%;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-}
+.settings-body { overflow-y: auto; }
+.setting-group { margin-bottom: 15px; }
+.setting-group label { display: block; color: #aaa; font-size: 12px; margin-bottom: 5px; }
+.setting-group .row { display: flex; gap: 10px; }
+.setting-group input { flex: 1; padding: 8px; background: #444; border: 1px solid #555; color: white; border-radius: 5px; width: 100%; }
+.setting-group button { background: #00b06f; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; }
+.verify-btn { background: #007bff !important; width: 100%; margin-top: 5px; }
 
-/* --- MODAL --- */
-.modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0,0,0,0.8);
-    display: flex;
-    justify-content: center;
-    align-items: flex-end;
-    z-index: 200;
-}
-
-.modal.hidden {
-    display: none;
-}
-
-.modal-content {
-    background: #2d2d2d;
-    width: 100%;
-    height: 80vh;
-    border-radius: 20px 20px 0 0;
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-}
-
-.modal-header {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 15px;
-}
-
-.search-bar {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 15px;
-}
-
-#searchInput {
-    flex: 1;
-    padding: 10px;
-    border-radius: 5px;
-    border: none;
-    background: #444;
-    color: white;
-}
-
-#searchActionBtn {
-    padding: 0 15px;
-    background: #00b06f;
-    color: white;
-    border: none;
-    border-radius: 5px;
-}
-
-.players-list {
-    flex: 1;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.player-search-card {
-    background: #3a3a3a;
-    padding: 10px;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.add-conn-btn {
-    background: #00b06f;
-    border: none;
-    color: white;
-    padding: 5px 10px;
-    border-radius: 5px;
-    font-size: 12px;
-}
-
-/* Login container styles (для index/register) */
-.login-container {
-    background-color: #393b3d;
-    padding: 30px;
-    border-radius: 12px;
-    width: 90%;
-    max-width: 400px;
-    text-align: center;
-    margin: auto;
-    margin-top: 100px;
-}
-.input-group { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
-input { padding: 12px; border-radius: 8px; border: 1px solid #555; background: #232527; color: white; width: 100%; }
-.button-group button { width: 100%; padding: 12px; background: #00b06f; color: white; border: none; border-radius: 8px; }
+/* Поиск */
+.search-bar { display: flex; gap: 10px; margin-bottom: 10px; }
+.player-search-card { background: #3a3a3a; padding: 10px; border-radius: 8px; display: flex; align-items: center; gap: 10px; margin-bottom: 5px; }
+.add-conn-btn { background: #00b06f; border: none; color: white; padding: 5px 10px; border-radius: 5px; }
