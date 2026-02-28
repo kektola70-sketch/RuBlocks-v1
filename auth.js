@@ -1,6 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
+// Твой конфиг
 const firebaseConfig = {
   apiKey: "AIzaSyBtElNGI8_4BSDO2XRnTjSw7AnjDQb83Kk",
   authDomain: "rublocks-v1.firebaseapp.com",
@@ -14,17 +15,34 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
-// Получаем элементы (они могут быть null, если мы на другой странице)
+// Элементы
 const emailInput = document.getElementById('email');
 const passInput = document.getElementById('password');
-const regBtn = document.getElementById('registerBtn'); // Есть только в register.html
-const loginBtn = document.getElementById('loginBtn'); // Есть только в index.html
+const regBtn = document.getElementById('registerBtn');
+const loginBtn = document.getElementById('loginBtn');
 const statusMsg = document.getElementById('status-message');
 
-// Сбрасываем старые входы при загрузке любой из этих страниц
-signOut(auth);
+// --- 1. АВТОМАТИЧЕСКАЯ ПРОВЕРКА (ЗАПОМИНАНИЕ) ---
+// Этот код срабатывает сам при запуске страницы
+onAuthStateChanged(auth, (user) => {
+    if (user) {
+        // Если Firebase помнит пользователя
+        console.log("Найден активный сеанс: " + user.email);
+        
+        if(statusMsg) {
+            statusMsg.innerText = "Вход выполнен! Переход...";
+            statusMsg.style.color = "lime";
+        }
+        
+        // Сразу перекидываем в меню
+        window.location.href = "menu.html";
+    } else {
+        // Если пользователя нет - ничего не делаем, ждем ввода пароля
+        console.log("Пользователь не найден. Нужен вход.");
+    }
+});
 
-// --- ЛОГИКА ДЛЯ СТРАНИЦЫ РЕГИСТРАЦИИ ---
+// --- 2. ЛОГИКА РЕГИСТРАЦИИ (register.html) ---
 if (regBtn) {
     regBtn.addEventListener('click', () => {
         const email = emailInput.value;
@@ -41,9 +59,8 @@ if (regBtn) {
 
         createUserWithEmailAndPassword(auth, email, password)
             .then(() => {
-                statusMsg.innerText = "Успех! Переход в меню...";
-                statusMsg.style.color = "lime";
-                setTimeout(() => window.location.href = "menu.html", 1000);
+                // onAuthStateChanged сработает сам и перекинет
+                statusMsg.innerText = "Успех!";
             })
             .catch((error) => {
                 statusMsg.innerText = "Ошибка: " + error.message;
@@ -52,7 +69,7 @@ if (regBtn) {
     });
 }
 
-// --- ЛОГИКА ДЛЯ СТРАНИЦЫ ВХОДА ---
+// --- 3. ЛОГИКА ВХОДА (index.html) ---
 if (loginBtn) {
     loginBtn.addEventListener('click', () => {
         const email = emailInput.value;
@@ -63,12 +80,11 @@ if (loginBtn) {
 
         signInWithEmailAndPassword(auth, email, password)
             .then(() => {
-                statusMsg.innerText = "Успех! Переход в меню...";
-                statusMsg.style.color = "lime";
-                setTimeout(() => window.location.href = "menu.html", 1000);
+                // onAuthStateChanged сработает сам и перекинет
+                statusMsg.innerText = "Успех!";
             })
             .catch((error) => {
-                statusMsg.innerText = "Ошибка: " + error.message; // Тут покажет, если пароль неверный
+                statusMsg.innerText = "Ошибка: " + error.message;
                 statusMsg.style.color = "red";
             });
     });
