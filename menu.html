@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rublocks - Меню</title>
+    <title>Rublocks - Лобби</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -22,21 +22,42 @@
         <button id="logoutBtn" class="small-btn">Выйти</button>
     </header>
 
-    <!-- Список друзей (Connections) -->
+    <!-- Секция друзей -->
     <section class="connections-section">
-        <h3>Connections</h3>
+        <h3>Connections (Друзья)</h3>
         <div class="connections-list">
-            <!-- Кнопка добавления -->
+            <!-- Кнопка поиска -->
             <div class="friend-card add-card" id="openSearchBtn">
                 <div class="plus-icon">+</div>
-                <span>Add</span>
+                <span>Поиск</span>
             </div>
-            <!-- Сюда попадут друзья -->
-            <div id="allPlayersList" style="display:flex; gap:10px;"></div>
+            
+            <!-- Сюда будут добавляться подтвержденные друзья (позже) -->
+            <div id="friendsList" style="display:flex; gap:10px;"></div>
         </div>
     </section>
 
-    <!-- ВАЖНО: Именно эта строчка запускает твой menu.js -->
+    <!-- МОДАЛЬНОЕ ОКНО ПОИСКА -->
+    <div id="searchModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Поиск игроков</h3>
+                <button id="closeModal">Закрыть</button>
+            </div>
+
+            <!-- Поле поиска -->
+            <div style="margin-bottom: 15px; display: flex; gap: 5px;">
+                <input type="text" id="searchInput" placeholder="Введите никнейм..." style="flex:1;">
+                <button id="searchActionBtn" style="background:#00b06f;">Найти</button>
+            </div>
+
+            <!-- Результаты -->
+            <div class="players-list" id="searchResults">
+                <p style="text-align:center; color:#888;">Введите имя или нажмите "Найти" чтобы увидеть всех.</p>
+            </div>
+        </div>
+    </div>
+
     <script type="module" src="menu.js"></script>
 </body>
 </html>
