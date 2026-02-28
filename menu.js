@@ -2,6 +2,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { getFirestore, doc, setDoc, getDoc, getDocs, collection, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
+// Твой конфиг
 const firebaseConfig = {
   apiKey: "AIzaSyBtElNGI8_4BSDO2XRnTjSw7AnjDQb83Kk",
   authDomain: "rublocks-v1.firebaseapp.com",
@@ -25,120 +26,97 @@ const closeModal = document.getElementById('closeModal');
 const allPlayersList = document.getElementById('allPlayersList');
 const logoutBtn = document.getElementById('logoutBtn');
 
-let currentUserData = null;
-
-// 1. Проверка входа
+// Главная проверка при загрузке
 onAuthStateChanged(auth, async (user) => {
     if (user) {
+        // Пользователь авторизован
+        console.log("User ID:", user.uid);
+        
         try {
             const userRef = doc(db, "users", user.uid);
             const userSnap = await getDoc(userRef);
 
             if (userSnap.exists()) {
-                currentUserData = userSnap.data();
-                // Обновляем статус на Online
+                // Данные есть - загружаем
+                const data = userSnap.data();
+                myUsername.innerText = data.username;
+                myAvatar.src = data.avatar;
+                
+                // Ставим онлайн
                 await updateDoc(userRef, { isOnline: true });
             } else {
-                // Создаем профиль
-                currentUserData = {
+                // Данных нет (первый вход) - создаем
+                myUsername.innerText = "Создание профиля...";
+                
+                const newData = {
                     username: user.email.split('@')[0],
                     avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.uid}`,
                     email: user.email,
                     uid: user.uid,
                     isOnline: true
                 };
-                await setDoc(userRef, currentUserData);
+                
+                await setDoc(userRef, newData);
+                
+                // Отображаем
+                myUsername.innerText = newData.username;
+                myAvatar.src = newData.avatar;
             }
-            
-            // Заполняем меню
-            myUsername.innerText = currentUserData.username;
-            myAvatar.src = currentUserData.avatar;
-            
+
         } catch (error) {
-            console.error("Ошибка загрузки профиля:", error);
-            alert("Ошибка базы данных: " + error.message);
+            console.error("CRITICAL ERROR:", error);
+            // Выводим ошибку прямо в никнейм, чтобы видеть её на телефоне
+            myUsername.innerText = "Ошибка БД: " + error.code;
+            myUsername.style.color = "red";
+            alert("Ошибка базы данных! Проверь консоль Firebase: " + error.message);
         }
+
     } else {
+        // Пользователя нет - отправляем на вход
         window.location.href = "index.html";
     }
 });
 
-// 2. Открытие окна поиска (С ЗАЩИТОЙ ОТ ПЕРЕЗАГРУЗКИ)
-openSearchBtn.addEventListener('click', async (e) => {
-    e.preventDefault(); // Запрещаем стандартные действия браузера
-    
-    // Показываем окно сразу
+// Открытие списка игроков
+openSearchBtn.addEventListener('click', async () => {
     searchModal.classList.remove('hidden');
-    allPlayersList.innerHTML = '<p style="text-align:center; color:#888;">Загрузка списка...</p>';
+    allPlayersList.innerHTML = '<p style="text-align:center">Загрузка...</p>';
 
     try {
-        // Запрос к базе данных
         const querySnapshot = await getDocs(collection(db, "users"));
-        
-        // Очищаем список перед заполнением
-        allPlayersList.innerHTML = ''; 
+        allPlayersList.innerHTML = '';
 
         if (querySnapshot.empty) {
-            allPlayersList.innerHTML = '<p style="text-align:center">Игроков не найдено</p>';
+            allPlayersList.innerHTML = '<p>Нет игроков</p>';
             return;
         }
 
         querySnapshot.forEach((doc) => {
             const data = doc.data();
-            
-            // Пропускаем себя
             if(auth.currentUser && data.uid === auth.currentUser.uid) return;
-
-            const statusClass = data.isOnline ? 'online' : 'offline';
-            const statusText = data.isOnline ? 'Online' : 'Offline';
 
             const div = document.createElement('div');
             div.className = 'player-search-card';
             div.innerHTML = `
-                <img src="${data.avatar}" alt="ava">
+                <img src="${data.avatar}" width="40">
                 <div class="player-info">
                     <h4>${data.username}</h4>
-                    <div>
-                        <span class="status-dot ${statusClass}"></span>
-                        <span style="font-size:12px; color:#888;">${statusText}</span>
-                    </div>
+                    <span>${data.isOnline ? '🟢 Online' : '⚪ Offline'}</span>
                 </div>
-                <button class="add-conn-btn" data-uid="${data.uid}">Add</button>
+                <button class="add-conn-btn">Add</button>
             `;
             allPlayersList.appendChild(div);
         });
 
-        // Добавляем обработчики на кнопки "Add"
-        document.querySelectorAll('.add-conn-btn').forEach(btn => {
-            btn.addEventListener('click', (event) => {
-                const uid = event.target.getAttribute('data-uid');
-                sendRequest(uid);
-            });
-        });
-
-    } catch (error) {
-        console.error(error);
-        allPlayersList.innerHTML = `<p style="color:red; text-align:center">Ошибка: ${error.message}</p>`;
-        // Если ошибка в правах доступа, мы это увидим здесь, а не перезагрузимся
+    } catch (e) {
+        allPlayersList.innerHTML = `<p style="color:red">Ошибка списка: ${e.message}</p>`;
     }
 });
 
-// Закрытие окна
 closeModal.addEventListener('click', () => {
     searchModal.classList.add('hidden');
 });
 
-// Выход
-logoutBtn.addEventListener('click', async () => {
-    if (auth.currentUser) {
-        const userRef = doc(db, "users", auth.currentUser.uid);
-        await updateDoc(userRef, { isOnline: false }); // Ставим Offline
-        await signOut(auth);
-        window.location.href = "index.html";
-    }
+logoutBtn.addEventListener('click', () => {
+    signOut(auth).then(() => window.location.href = "index.html");
 });
-
-// Функция отправки запроса
-function sendRequest(targetUid) {
-    alert("Запрос отправлен игроку: " + targetUid);
-}
