@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rublocks - Меню</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- Верхняя панель -->
+    <header class="top-bar">
+        <div class="user-info">
+            <div class="avatar-circle">
+                <img src="" id="myAvatar" alt="Avatar">
+            </div>
+            <div class="user-text">
+                <h2 id="myUsername">Загрузка...</h2>
+                <span class="status online">Online</span>
+            </div>
+        </div>
+        <button id="logoutBtn" class="small-btn">Выйти</button>
+    </header>
+
+    <!-- Список друзей (Connections) -->
+    <section class="connections-section">
+        <h3>Connections</h3>
+        <div class="connections-list">
+            <!-- Кнопка добавления -->
+            <div class="friend-card add-card" id="openSearchBtn">
+                <div class="plus-icon">+</div>
+                <span>Add</span>
+            </div>
+            <!-- Сюда попадут друзья -->
+            <div id="allPlayersList" style="display:flex; gap:10px;"></div>
+        </div>
+    </section>
+
+    <!-- ВАЖНО: Именно эта строчка запускает твой menu.js -->
+    <script type="module" src="menu.js"></script>
+</body>
+</html>
