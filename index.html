@@ -3,28 +3,60 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rublocks - Вход</title>
+    <title>Rublocks - Меню</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-    <div class="login-container">
-        <h1>Rublocks</h1>
-        <div class="input-group">
-            <input type="email" id="email" placeholder="Email" autocomplete="off">
-            <input type="password" id="password" placeholder="Password">
+    <!-- Верхняя панель: Аватар и Ник -->
+    <header class="top-bar">
+        <div class="user-info">
+            <div class="avatar-circle">
+                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" id="myAvatar" alt="Avatar">
+            </div>
+            <div class="user-text">
+                <h2 id="myUsername">Загрузка...</h2>
+                <span class="status online">Online</span>
+            </div>
         </div>
-        
-        <div class="button-group">
-            <button id="registerBtn">Регистрация</button>
-            <button id="loginBtn" class="secondary">Вход</button>
-        </div>
+        <button id="logoutBtn" class="small-btn">Выйти</button>
+    </header>
 
-        <p id="status-message"></p>
+    <!-- Секция Connections (Друзья) -->
+    <section class="connections-section">
+        <h3>Connections</h3>
+        <div class="connections-list">
+            <!-- Кнопка добавления (самая первая слева) -->
+            <div class="friend-card add-card" id="openSearchBtn">
+                <div class="plus-icon">+</div>
+                <span>Add</span>
+            </div>
+            
+            <!-- Сюда скрипт будет добавлять друзей -->
+            <div id="friendsContainer" class="real-friends">
+                <!-- Пример друга (будет удален скриптом) -->
+                <!-- <div class="friend-card">
+                    <img src="...">
+                    <span>Friend 1</span>
+                </div> -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Модальное окно (Поиск игроков) -->
+    <div id="searchModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Игроки</h3>
+                <button id="closeModal">✕</button>
+            </div>
+            <div class="players-list" id="allPlayersList">
+                <p style="text-align:center; color:#888;">Загрузка игроков...</p>
+            </div>
+        </div>
     </div>
 
-    <!-- type="module" обязательно для работы Firebase в браузере -->
-    <script type="module" src="auth.js"></script>
-
+    <!-- Подключаем скрипт -->
+    <script type="module" src="menu.js"></script>
 </body>
 </html>
