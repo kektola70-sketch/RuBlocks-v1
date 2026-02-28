@@ -231,4 +231,23 @@ async function sendFriendRequest(targetUid, targetName, btn) {
     try {
         await addDoc(collection(db, "friend_requests"), {
             from: currentUser.uid,
-            fromName:
+            fromName: myUserData.username,
+            fromAvatar: myUserData.avatar,
+            to: targetUid,
+            status: "pending",
+            timestamp: Date.now()
+        });
+        btn.innerText = "Sent";
+        btn.style.background = "#555";
+        btn.disabled = true;
+    } catch (e) {
+        console.error(e);
+        btn.innerText = "Err";
+        btn.style.background = "red";
+    }
+}
+
+// Выход
+logoutBtn.addEventListener('click', () => {
+    signOut(auth).then(() => window.location.href = "index.html");
+});
