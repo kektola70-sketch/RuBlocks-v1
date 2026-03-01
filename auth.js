@@ -1,7 +1,7 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-// Твой конфиг
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
 const firebaseConfig = {
   apiKey: "AIzaSyBtElNGI8_4BSDO2XRnTjSw7AnjDQb83Kk",
   authDomain: "rublocks-v1.firebaseapp.com",
@@ -20,27 +20,23 @@ const emailInput = document.getElementById('email');
 const passInput = document.getElementById('password');
 const regBtn = document.getElementById('registerBtn');
 const loginBtn = document.getElementById('loginBtn');
-const botCheck = document.getElementById('botCheck'); // Галочка
+const botCheck = document.getElementById('botCheck');
 const statusMsg = document.getElementById('status-message');
 
-// --- 1. АВТО-ВХОД (ЗАПОМИНАНИЕ) ---
-// Если Firebase помнит пользователя, сразу кидаем в меню
+// 1. АВТО-ВХОД
 onAuthStateChanged(auth, (user) => {
     if (user) {
-        console.log("Аккаунт найден: " + user.email);
         if(statusMsg) {
-            statusMsg.innerText = "Вход выполнен! Переход...";
+            statusMsg.innerText = "Аккаунт найден! Входим...";
             statusMsg.style.color = "lime";
         }
-        // Переход в меню
         setTimeout(() => window.location.href = "menu.html", 500);
     }
 });
 
-// --- 2. ВХОД (index.html) ---
+// 2. ВХОД С ЗАПОМИНАНИЕМ
 if (loginBtn) {
-    loginBtn.addEventListener('click', () => {
-        // Проверка на робота
+    loginBtn.addEventListener('click', async () => {
         if (!botCheck.checked) {
             statusMsg.innerText = "⛔ Подтвердите, что вы не робот!";
             statusMsg.style.color = "red";
@@ -50,36 +46,32 @@ if (loginBtn) {
         const email = emailInput.value;
         const password = passInput.value;
 
-        if (!email || !password) {
-            statusMsg.innerText = "Заполните все поля";
-            statusMsg.style.color = "red";
-            return;
-        }
-
         statusMsg.innerText = "Вход...";
         statusMsg.style.color = "yellow";
 
-        signInWithEmailAndPassword(auth, email, password)
-            .then(() => {
-                // Успех! onAuthStateChanged сработает сам и перекинет
-                statusMsg.innerText = "Успех!";
-                statusMsg.style.color = "lime";
-            })
-            .catch((error) => {
-                statusMsg.innerText = "Ошибка: " + error.message;
-                statusMsg.style.color = "red";
-            });
+        try {
+            // ВАЖНО: Принудительно включаем запоминание перед входом
+            await setPersistence(auth, browserLocalPersistence);
+            
+            await signInWithEmailAndPassword(auth, email, password);
+            statusMsg.innerText = "Успех!";
+            statusMsg.style.color = "lime";
+            // onAuthStateChanged сработает сам
+        } catch (error) {
+            statusMsg.innerText = "Ошибка: " + error.message;
+            statusMsg.style.color = "red";
+        }
     });
 }
 
-// --- 3. РЕГИСТРАЦИЯ (register.html) ---
+// 3. РЕГИСТРАЦИЯ С ЗАПОМИНАНИЕМ
 if (regBtn) {
-    regBtn.addEventListener('click', () => {
+    regBtn.addEventListener('click', async () => {
         const email = emailInput.value;
         const password = passInput.value;
 
         if (password.length < 6) {
-            statusMsg.innerText = "Пароль слишком короткий!";
+            statusMsg.innerText = "Пароль < 6 символов!";
             statusMsg.style.color = "red";
             return;
         }
@@ -87,15 +79,16 @@ if (regBtn) {
         statusMsg.innerText = "Создание...";
         statusMsg.style.color = "yellow";
 
-        createUserWithEmailAndPassword(auth, email, password)
-            .then(() => {
-                // Успех!
-                statusMsg.innerText = "Аккаунт создан! Входим...";
-                statusMsg.style.color = "lime";
-            })
-            .catch((error) => {
-                statusMsg.innerText = "Ошибка: " + error.message;
-                statusMsg.style.color = "red";
-            });
+        try {
+            // ВАЖНО: Принудительно включаем запоминание
+            await setPersistence(auth, browserLocalPersistence);
+
+            await createUserWithEmailAndPassword(auth, email, password);
+            statusMsg.innerText = "Готово! Входим...";
+            statusMsg.style.color = "lime";
+        } catch (error) {
+            statusMsg.innerText = "Ошибка: " + error.message;
+            statusMsg.style.color = "red";
+        }
     });
-}
+};
