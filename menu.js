@@ -26,13 +26,13 @@ const myAvatar = document.getElementById('myAvatar');
 const verifiedBadge = document.getElementById('verifiedBadge');
 const friendsContainer = document.getElementById('friendsContainer');
 
-// Нижнее меню (FAB)
+// Нижнее меню
 const moreBtn = document.getElementById('moreBtn');
 const moreMenuPopup = document.getElementById('moreMenuPopup');
-const openSettingsBtn = document.getElementById('openSettingsBtn'); // Кнопка в меню
-const logoutBtn = document.getElementById('logoutBtn'); // Кнопка в меню
+const openSettingsBtn = document.getElementById('openSettingsBtn');
+const logoutBtn = document.getElementById('logoutBtn');
 
-// Настройки Модалка
+// Настройки
 const settingsModal = document.getElementById('settingsModal');
 const closeSettings = document.getElementById('closeSettings');
 const editNickInput = document.getElementById('editNickInput');
@@ -42,6 +42,7 @@ const birthDateInput = document.getElementById('birthDateInput');
 const saveDateBtn = document.getElementById('saveDateBtn');
 const verifyEmailBtn = document.getElementById('verifyEmailBtn');
 const emailStatusText = document.getElementById('emailStatusText');
+const langSelect = document.getElementById('langSelect');
 
 // Уведомления и Поиск
 const notifBtn = document.getElementById('notifBtn');
@@ -56,12 +57,69 @@ const searchActionBtn = document.getElementById('searchActionBtn');
 
 let currentUser = null;
 let myUserData = null;
+let currentLang = localStorage.getItem('rublocks_lang') || 'ru'; // Загружаем язык из памяти
+
+// --- СЛОВАРЬ ПЕРЕВОДОВ ---
+const translations = {
+    ru: {
+        settings: "Настройки", logout: "Выйти", connections: "Connections",
+        search: "Поиск", searchTitle: "Поиск игроков", noReq: "Нет новых заявок",
+        lang: "Язык / Language", nick: "Никнейм", birth: "Дата рождения",
+        emailSt: "Статус Email", verify: "Подтвердить почту",
+        emailOk: "Email подтвержден ✅", emailNo: "Не подтвержден ❌",
+        sent: "Отправлено", err: "Ошибка"
+    },
+    en: {
+        settings: "Settings", logout: "Log Out", connections: "Connections",
+        search: "Search", searchTitle: "Search Players", noReq: "No new requests",
+        lang: "Language", nick: "Nickname", birth: "Birth Date",
+        emailSt: "Email Status", verify: "Verify Email",
+        emailOk: "Email Verified ✅", emailNo: "Not Verified ❌",
+        sent: "Sent", err: "Error"
+    }
+};
+
+// --- ФУНКЦИЯ СМЕНЫ ЯЗЫКА ---
+function applyLanguage(lang) {
+    currentLang = lang;
+    localStorage.setItem('rublocks_lang', lang); // Сохраняем выбор
+    const t = translations[lang];
+
+    document.getElementById('lblSettings').innerText = t.settings;
+    document.getElementById('lblLogout').innerText = t.logout;
+    document.getElementById('lblConnections').innerText = t.connections;
+    document.getElementById('lblSearch').innerText = t.search;
+    document.getElementById('lblSearchTitle').innerText = t.searchTitle;
+    document.getElementById('lblNoReq').innerText = t.noReq;
+    document.getElementById('lblSettingsTitle').innerText = t.settings;
+    document.getElementById('lblLang').innerText = t.lang;
+    document.getElementById('lblNick').innerText = t.nick;
+    document.getElementById('lblBirth').innerText = t.birth;
+    document.getElementById('lblEmailStatus').innerText = t.emailSt;
+    verifyEmailBtn.innerText = t.verify;
+    
+    // Обновляем статус почты, если он уже известен
+    if (currentUser) {
+        emailStatusText.innerText = currentUser.emailVerified ? t.emailOk : t.emailNo;
+    }
+    
+    langSelect.value = lang;
+}
+
+// Слушатель смены языка
+langSelect.addEventListener('change', (e) => {
+    applyLanguage(e.target.value);
+});
+
 
 // --- ЗАГРУЗКА ---
 onAuthStateChanged(auth, async (user) => {
     if (user) {
         currentUser = user;
         const userRef = doc(db, "users", user.uid);
+        
+        applyLanguage(currentLang); // Применяем язык при входе
+
         try {
             let snap = await getDoc(userRef);
             if (!snap.exists()) {
@@ -89,12 +147,18 @@ function updateProfileUI() {
     myUsername.innerText = myUserData.username;
     myUserId.innerText = "@" + currentUser.uid.slice(0, 8);
     myAvatar.src = myUserData.avatar;
+    
+    const t = translations[currentLang];
+
     if (currentUser.emailVerified) {
         verifiedBadge.style.display = "inline";
-        emailStatusText.innerText = "Email подтвержден ✅";
+        emailStatusText.innerText = t.emailOk;
         emailStatusText.style.color = "lime";
         verifyEmailBtn.style.display = "none";
+    } else {
+        emailStatusText.innerText = t.emailNo;
     }
+
     editNickInput.value = myUserData.username;
     readOnlyId.value = "@" + currentUser.uid.slice(0, 8);
     if(myUserData.birthDate) birthDateInput.value = myUserData.birthDate;
@@ -112,43 +176,39 @@ async function loadFriends(uid) {
     });
 }
 
-// --- УПРАВЛЕНИЕ МЕНЮ (FAB) ---
-moreBtn.addEventListener('click', () => {
-    moreMenuPopup.classList.toggle('active');
-});
-
-// Открыть настройки из нижнего меню
+// --- УПРАВЛЕНИЕ МЕНЮ ---
+moreBtn.addEventListener('click', () => moreMenuPopup.classList.toggle('active'));
 openSettingsBtn.addEventListener('click', () => {
-    moreMenuPopup.classList.remove('active'); // Закрыть маленькое меню
-    settingsModal.classList.remove('hidden'); // Открыть модалку
+    moreMenuPopup.classList.remove('active');
+    settingsModal.classList.remove('hidden');
 });
-
-// Выход из нижнего меню
 logoutBtn.addEventListener('click', () => {
     signOut(auth).then(() => window.location.href = "index.html");
 });
 
-
 // --- НАСТРОЙКИ ---
 saveNickBtn.addEventListener('click', async () => {
     const newName = editNickInput.value.trim();
-    if(newName.length < 3) return alert("Ник короткий");
+    if(newName.length < 3) return alert("Short nick");
     await updateDoc(doc(db, "users", currentUser.uid), { username: newName });
     myUserData.username = newName;
     updateProfileUI();
-    alert("Ник изменен!");
+    alert("Saved!");
 });
 saveDateBtn.addEventListener('click', async () => {
     const date = birthDateInput.value;
     if(!date) return;
     await updateDoc(doc(db, "users", currentUser.uid), { birthDate: date });
-    alert("Дата сохранена");
+    alert("Saved!");
 });
+
+// РЕАЛЬНОЕ ПОДТВЕРЖДЕНИЕ ПОЧТЫ
 verifyEmailBtn.addEventListener('click', () => {
     sendEmailVerification(currentUser)
-        .then(() => alert(`Письмо отправлено!`))
+        .then(() => alert(`Link sent to ${currentUser.email}. Check Spam!`))
         .catch(e => alert(e.message));
 });
+
 closeSettings.addEventListener('click', () => settingsModal.classList.add('hidden'));
 
 // --- УВЕДОМЛЕНИЯ ---
@@ -166,7 +226,7 @@ function listenForNotifications(uid) {
                 el.className = 'request-item';
                 el.innerHTML = `
                     <img src="${r.fromAvatar}">
-                    <div style="flex:1; font-size:12px;"><b>${r.fromName}</b><br>хочет в друзья</div>
+                    <div style="flex:1; font-size:12px;"><b>${r.fromName}</b><br>req</div>
                     <div class="req-actions">
                         <button class="btn-accept" onclick="acceptReq('${r.id}', '${r.from}', '${r.fromName}', '${r.fromAvatar}')">✔</button>
                         <button class="btn-decline" onclick="declineReq('${r.id}')">✖</button>
@@ -175,7 +235,7 @@ function listenForNotifications(uid) {
             });
         } else {
             notifBadge.style.display = "none";
-            notifDropdown.innerHTML = '<p class="empty-msg">Нет новых заявок</p>';
+            notifDropdown.innerHTML = `<p class="empty-msg">${translations[currentLang].noReq}</p>`;
         }
     });
 }
@@ -193,7 +253,7 @@ openSearchBtn.addEventListener('click', () => searchModal.classList.remove('hidd
 closeModal.addEventListener('click', () => searchModal.classList.add('hidden'));
 searchActionBtn.addEventListener('click', async () => {
     const txt = searchInput.value.toLowerCase();
-    searchResults.innerHTML = "Поиск...";
+    searchResults.innerHTML = "...";
     const snap = await getDocs(collection(db, "users"));
     searchResults.innerHTML = "";
     snap.forEach(d => {
