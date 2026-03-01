@@ -11,25 +11,18 @@
     <!-- ШАПКА -->
     <header class="top-bar">
         <div class="user-info">
-            <div class="avatar-circle">
-                <img src="" id="myAvatar" alt="Avatar">
-            </div>
+            <div class="avatar-circle"><img src="" id="myAvatar" alt="Avatar"></div>
             <div class="user-text">
                 <div style="display: flex; align-items: center; gap: 5px;">
-                    <h2 id="myUsername">...</h2>
-                    <span id="verifiedBadge" class="verified-icon" style="display:none;">✔</span>
+                    <h2 id="myUsername">...</h2><span id="verifiedBadge" class="verified-icon" style="display:none;">✔</span>
                 </div>
                 <span class="user-id-tag" id="myUserId">@loading</span>
             </div>
         </div>
-
         <div style="display:flex; align-items:center;">
             <div class="notification-box" id="notifBtn">
-                <span class="bell-icon">🔔</span>
-                <span class="badge" id="notifBadge">0</span>
-                <div class="notif-dropdown" id="notifDropdown">
-                    <p class="empty-msg" id="lblNoReq">Нет новых заявок</p>
-                </div>
+                <span class="bell-icon">🔔</span><span class="badge" id="notifBadge">0</span>
+                <div class="notif-dropdown" id="notifDropdown"><p class="empty-msg" id="lblNoReq">Нет новых заявок</p></div>
             </div>
         </div>
     </header>
@@ -38,15 +31,12 @@
     <section class="connections-section">
         <h3 id="lblConnections">Connections</h3>
         <div class="connections-list">
-            <div class="friend-card add-card" id="openSearchBtn">
-                <div class="plus-icon">+</div>
-                <span id="lblSearch">Поиск</span>
-            </div>
+            <div class="friend-card add-card" id="openSearchBtn"><div class="plus-icon">+</div><span id="lblSearch">Поиск</span></div>
             <div id="friendsContainer" style="display:flex; gap:10px;"></div>
         </div>
     </section>
 
-    <!-- КНОПКИ УПРАВЛЕНИЯ -->
+    <!-- НИЖНЕЕ МЕНЮ -->
     <div class="bottom-menu-container">
         <button class="fab-btn" id="chatFabBtn">💬</button>
         <div class="more-menu-popup" id="moreMenuPopup">
@@ -56,7 +46,7 @@
         <button class="fab-btn" id="moreBtn">•••</button>
     </div>
 
-    <!-- 1. СПИСОК ЧАТОВ -->
+    <!-- === ЭКРАНЫ ЧАТА === -->
     <div id="chatListModal" class="chat-screen hidden" style="display:none;">
         <div class="chat-header">
             <h3>Chats</h3>
@@ -66,17 +56,14 @@
                 <button id="closeChatListBtn" style="background:none; border:none; color:white; font-size:24px;">✕</button>
             </div>
         </div>
-        <div class="chat-list" id="chatListContainer">
-            <!-- ЗДЕСЬ БУДУТ ЧАТЫ -->
-        </div>
+        <div class="chat-list" id="chatListContainer"></div>
     </div>
 
-    <!-- 2. ОКНО ПЕРЕПИСКИ -->
     <div id="chatRoomModal" class="chat-screen hidden" style="display:none;">
         <div class="chat-header">
             <div style="display:flex; align-items:center; gap:10px;">
                 <button id="backToChatList" style="background:none; border:none; color:white; font-size:20px;">⬅</button>
-                <div id="chatRoomTitle" style="font-weight:bold; max-width: 150px; overflow:hidden; white-space:nowrap;">Name</div>
+                <div id="chatRoomTitle" style="font-weight:bold;">Name</div>
             </div>
             <button id="callActionBtn" class="call-btn">📞 Call</button>
         </div>
@@ -87,52 +74,53 @@
         </div>
     </div>
 
-    <!-- 3. НОВЫЙ ЧАТ (ВЫБОР ДРУГА) -->
-    <div id="newChatModal" class="modal hidden">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Select Friend</h3>
-                <button id="closeNewChatModal">✕</button>
-            </div>
-            <div id="newChatFriendsList" style="overflow-y:auto; flex:1;"></div>
+    <!-- === ЭКРАН ВХОДЯЩЕГО ЗВОНКА === -->
+    <div id="incomingCallOverlay" class="call-overlay hidden" style="display:none;">
+        <img src="" id="callerAvatar" class="caller-avatar">
+        <h2 id="callerName">User</h2>
+        <p id="callStatusText">Incoming Call...</p>
+        <div class="call-actions">
+            <button id="answerCallBtn" class="btn-call btn-answer">📞</button>
+            <button id="rejectCallBtn" class="btn-call btn-hangup">✖</button>
         </div>
     </div>
 
-    <!-- 4. СОЗДАНИЕ ГРУППЫ -->
-    <div id="createGroupModal" class="modal hidden">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>New Group</h3>
-                <button id="closeGroupModal">✕</button>
+    <!-- === ВЫБОР ИГРЫ (Game Selector) === -->
+    <div id="gameSelectorOverlay" class="game-selector-overlay hidden" style="display:none;">
+        <div class="chat-header">
+            <h3>Select Game</h3>
+            <button id="closeGameSelector" style="background:none; border:none; color:white; font-size:24px;">✕</button>
+        </div>
+        <div class="game-grid">
+            <div class="game-card" data-game="Parkour">
+                <img src="https://cdn-icons-png.flaticon.com/512/3062/3062634.png">
+                <h4>Parkour Obby</h4>
             </div>
-            <input type="text" id="groupNameInput" placeholder="Group Name" style="width:100%; padding:10px; margin-bottom:10px; background:#444; border:none; color:white;">
-            <p style="font-size:12px; color:#aaa;">Select friends (Max 10):</p>
-            <div id="groupFriendsList" style="flex:1; overflow-y:auto; border:1px solid #444; border-radius:5px;"></div>
-            <button id="finishCreateGroupBtn" style="margin-top:10px; padding:10px; background:#00b06f; color:white; border:none; width:100%;">Create</button>
+            <div class="game-card" data-game="City">
+                <img src="https://cdn-icons-png.flaticon.com/512/3062/3062652.png">
+                <h4>City Tycoon</h4>
+            </div>
+            <div class="game-card" data-game="Shooter">
+                <img src="https://cdn-icons-png.flaticon.com/512/3062/3062646.png">
+                <h4>Space Shooter</h4>
+            </div>
+            <div class="game-card" data-game="Race">
+                <img src="https://cdn-icons-png.flaticon.com/512/3062/3062664.png">
+                <h4>Car Race</h4>
+            </div>
+        </div>
+        <div class="play-actions">
+            <p id="selectedGameText" style="text-align:center; color:#aaa;">Select a game...</p>
+            <button id="playTogetherBtn" class="btn-play-friends" disabled>🎮 Play with Friend</button>
+            <button id="playSoloBtn" class="btn-play-solo">👤 Play Solo</button>
         </div>
     </div>
 
-    <!-- МОДАЛКИ (Поиск, Настройки) -->
-    <div id="searchModal" class="modal hidden">
-        <div class="modal-content">
-            <div class="modal-header"><h3 id="lblSearchTitle">Поиск игроков</h3><button id="closeModal">✕</button></div>
-            <div class="search-bar"><input type="text" id="searchInput" placeholder="Nick..."><button id="searchActionBtn">Go</button></div>
-            <div class="players-list" id="searchResults"></div>
-        </div>
-    </div>
-
-    <div id="settingsModal" class="modal hidden">
-        <div class="modal-content settings-content">
-            <div class="modal-header"><h3 id="lblSettingsTitle">Настройки</h3><button id="closeSettings">✕</button></div>
-            <div class="settings-body">
-                <div class="setting-group"><label id="lblLang">Язык</label><select id="langSelect"><option value="ru">Русский</option><option value="en">English</option></select></div>
-                <div class="setting-group"><label id="lblNick">Никнейм</label><div class="row"><input type="text" id="editNickInput"><button id="saveNickBtn">OK</button></div></div>
-                <div class="setting-group"><label>ID</label><input type="text" id="readOnlyId" readonly style="color: #888;"></div>
-                <div class="setting-group"><label id="lblBirth">Дата рождения</label><div class="row"><input type="date" id="birthDateInput"><button id="saveDateBtn">OK</button></div></div>
-                <div class="setting-group"><label id="lblEmailStatus">Статус Email</label><p id="emailStatusText">...</p><button id="verifyEmailBtn" class="verify-btn">Подтвердить</button></div>
-            </div>
-        </div>
-    </div>
+    <!-- ВСПОМОГАТЕЛЬНЫЕ МОДАЛКИ (Новый чат, Группы и т.д.) -->
+    <div id="newChatModal" class="modal hidden"><div class="modal-content"><div class="modal-header"><h3>Select Friend</h3><button id="closeNewChatModal">✕</button></div><div id="newChatFriendsList" style="overflow-y:auto; flex:1;"></div></div></div>
+    <div id="createGroupModal" class="modal hidden"><div class="modal-content"><div class="modal-header"><h3>New Group</h3><button id="closeGroupModal">✕</button></div><input type="text" id="groupNameInput" placeholder="Group Name" style="width:100%; padding:10px; margin-bottom:10px; background:#444; border:none; color:white;"><div id="groupFriendsList" style="flex:1; overflow-y:auto;"></div><button id="finishCreateGroupBtn" style="margin-top:10px; padding:10px; background:#00b06f; color:white; border:none; width:100%;">Create</button></div></div>
+    <div id="searchModal" class="modal hidden"><div class="modal-content"><div class="modal-header"><h3 id="lblSearchTitle">Поиск игроков</h3><button id="closeModal">✕</button></div><div class="search-bar"><input type="text" id="searchInput" placeholder="Nick..."><button id="searchActionBtn">Go</button></div><div class="players-list" id="searchResults"></div></div></div>
+    <div id="settingsModal" class="modal hidden"><div class="modal-content settings-content"><div class="modal-header"><h3 id="lblSettingsTitle">Настройки</h3><button id="closeSettings">✕</button></div><div class="settings-body"><div class="setting-group"><label id="lblLang">Язык</label><select id="langSelect"><option value="ru">Русский</option><option value="en">English</option></select></div><div class="setting-group"><label id="lblNick">Никнейм</label><div class="row"><input type="text" id="editNickInput"><button id="saveNickBtn">OK</button></div></div><div class="setting-group"><label>ID</label><input type="text" id="readOnlyId" readonly style="color: #888;"></div><div class="setting-group"><label id="lblBirth">Дата рождения</label><div class="row"><input type="date" id="birthDateInput"><button id="saveDateBtn">OK</button></div></div><div class="setting-group" style="margin-top: 20px; border-top: 1px solid #444; padding-top: 10px;"><label id="lblEmailStatus">Статус Email</label><p id="emailStatusText">...</p><button id="verifyEmailBtn" class="verify-btn">Подтвердить</button></div></div></div></div>
 
     <script type="module" src="menu.js"></script>
 </body>
