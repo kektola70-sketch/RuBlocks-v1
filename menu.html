@@ -47,8 +47,12 @@
         </div>
     </section>
 
-    <!-- НИЖНЕЕ МЕНЮ (FAB) -->
+    <!-- НИЖНЕЕ МЕНЮ -->
     <div class="bottom-menu-container">
+        <!-- Кнопка ЧАТА -->
+        <button class="fab-btn" id="chatFabBtn">💬</button>
+
+        <!-- Меню настроек -->
         <div class="more-menu-popup" id="moreMenuPopup">
             <button class="menu-item-btn" id="openSettingsBtn">
                 <span>⚙️</span> <span id="lblSettings">Настройки</span>
@@ -60,9 +64,55 @@
         <button class="fab-btn" id="moreBtn">•••</button>
     </div>
 
-    <!-- МОДАЛКИ -->
+    <!-- === ЭКРАНЫ ЧАТА === -->
+    
+    <!-- 1. Список чатов -->
+    <div id="chatListModal" class="chat-screen hidden" style="display:none;">
+        <div class="chat-header">
+            <h3>Chats</h3>
+            <div style="display:flex; gap:10px;">
+                <button id="createGroupBtn" class="small-btn">+ Group</button>
+                <button id="closeChatListBtn" style="background:none; border:none; color:white; font-size:24px;">✕</button>
+            </div>
+        </div>
+        <div class="chat-list" id="chatListContainer">
+            <!-- Сюда грузятся чаты -->
+        </div>
+    </div>
 
-    <!-- ПОИСК -->
+    <!-- 2. Окно переписки -->
+    <div id="chatRoomModal" class="chat-screen hidden" style="display:none;">
+        <div class="chat-header">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <button id="backToChatList" style="background:none; border:none; color:white; font-size:20px;">⬅</button>
+                <div id="chatRoomTitle" style="font-weight:bold;">Name</div>
+            </div>
+            <!-- Кнопка Звонка -->
+            <button id="callActionBtn" class="call-btn">📞 Call</button>
+        </div>
+        <div class="message-area" id="messagesContainer"></div>
+        <div class="message-input-area">
+            <input type="text" id="messageInput" placeholder="Message...">
+            <button class="send-btn" id="sendMessageBtn">➤</button>
+        </div>
+    </div>
+
+    <!-- 3. Создание Группы -->
+    <div id="createGroupModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>New Group</h3>
+                <button id="closeGroupModal">✕</button>
+            </div>
+            <input type="text" id="groupNameInput" placeholder="Group Name" style="width:100%; padding:10px; margin-bottom:10px; background:#444; border:none; color:white;">
+            <p style="font-size:12px; color:#aaa;">Select friends (Max 10):</p>
+            <div id="groupFriendsList" style="flex:1; overflow-y:auto; border:1px solid #444; border-radius:5px;"></div>
+            <button id="finishCreateGroupBtn" style="margin-top:10px; padding:10px; background:#00b06f; color:white; border:none; width:100%;">Create</button>
+        </div>
+    </div>
+
+
+    <!-- МОДАЛКИ (Старые) -->
     <div id="searchModal" class="modal hidden">
         <div class="modal-content">
             <div class="modal-header">
@@ -77,25 +127,17 @@
         </div>
     </div>
 
-    <!-- НАСТРОЙКИ -->
     <div id="settingsModal" class="modal hidden">
         <div class="modal-content settings-content">
             <div class="modal-header">
                 <h3 id="lblSettingsTitle">Настройки</h3>
                 <button id="closeSettings">✕</button>
             </div>
-            
             <div class="settings-body">
-                <!-- Язык -->
                 <div class="setting-group">
-                    <label id="lblLang">Язык / Language</label>
-                    <select id="langSelect">
-                        <option value="ru">Русский</option>
-                        <option value="en">English</option>
-                    </select>
+                    <label id="lblLang">Язык</label>
+                    <select id="langSelect"><option value="ru">Русский</option><option value="en">English</option></select>
                 </div>
-
-                <!-- Смена Ника -->
                 <div class="setting-group">
                     <label id="lblNick">Никнейм</label>
                     <div class="row">
@@ -103,14 +145,10 @@
                         <button id="saveNickBtn">OK</button>
                     </div>
                 </div>
-
-                <!-- ID -->
                 <div class="setting-group">
                     <label>ID</label>
                     <input type="text" id="readOnlyId" readonly style="color: #888;">
                 </div>
-
-                <!-- Дата рождения -->
                 <div class="setting-group">
                     <label id="lblBirth">Дата рождения</label>
                     <div class="row">
@@ -118,8 +156,6 @@
                         <button id="saveDateBtn">OK</button>
                     </div>
                 </div>
-
-                <!-- Почта -->
                 <div class="setting-group" style="margin-top: 20px; border-top: 1px solid #444; padding-top: 10px;">
                     <label id="lblEmailStatus">Статус Email</label>
                     <p id="emailStatusText" style="font-size: 12px; color: orange;">...</p>
