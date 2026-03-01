@@ -19,12 +19,14 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
+// Основные переменные
 let currentUser = null;
 let myUserData = null;
 let currentLang = localStorage.getItem('rublocks_lang') || 'ru';
 let activeChatId = null;
 let activeChatUnsub = null;
 let currentChatIsGroup = false;
+let currentCallId = null; // ID активного звонка
 
 // UI Elements
 const myUsername = document.getElementById('myUsername');
@@ -32,13 +34,25 @@ const myUserId = document.getElementById('myUserId');
 const myAvatar = document.getElementById('myAvatar');
 const friendsContainer = document.getElementById('friendsContainer');
 
+// Call & Game UI
+const incomingCallOverlay = document.getElementById('incomingCallOverlay');
+const callerAvatar = document.getElementById('callerAvatar');
+const callerName = document.getElementById('callerName');
+const callStatusText = document.getElementById('callStatusText');
+const answerCallBtn = document.getElementById('answerCallBtn');
+const rejectCallBtn = document.getElementById('rejectCallBtn');
+
+const gameSelectorOverlay = document.getElementById('gameSelectorOverlay');
+const closeGameSelector = document.getElementById('closeGameSelector');
+const playTogetherBtn = document.getElementById('playTogetherBtn');
+const playSoloBtn = document.getElementById('playSoloBtn');
+const selectedGameText = document.getElementById('selectedGameText');
+const gameCards = document.querySelectorAll('.game-card');
+
 // Chat UI
-const chatFabBtn = document.getElementById('chatFabBtn');
 const chatListModal = document.getElementById('chatListModal');
-const closeChatListBtn = document.getElementById('closeChatListBtn');
 const chatListContainer = document.getElementById('chatListContainer');
 const chatRoomModal = document.getElementById('chatRoomModal');
-const backToChatList = document.getElementById('backToChatList');
 const messagesContainer = document.getElementById('messagesContainer');
 const messageInput = document.getElementById('messageInput');
 const sendMessageBtn = document.getElementById('sendMessageBtn');
@@ -57,24 +71,11 @@ const groupFriendsList = document.getElementById('groupFriendsList');
 const finishCreateGroupBtn = document.getElementById('finishCreateGroupBtn');
 const groupNameInput = document.getElementById('groupNameInput');
 
-const translations = {
-    ru: { settings: "Настройки", logout: "Выйти", connections: "Connections", search: "Поиск", searchTitle: "Поиск игроков", noReq: "Нет новых заявок", lang: "Язык", nick: "Ник", birth: "ДР", emailSt: "Email", verify: "Подтвердить", emailOk: "OK ✅", emailNo: "Нет ❌", call: "📞 Позвонить", party: "🎉 Party", calling: "Звонок...", joined: "Вы в Party!" },
-    en: { settings: "Settings", logout: "Log Out", connections: "Connections", search: "Search", searchTitle: "Search Players", noReq: "No new requests", lang: "Language", nick: "Nick", birth: "Birth Date", emailSt: "Email", verify: "Verify", emailOk: "OK ✅", emailNo: "No ❌", call: "📞 Call", party: "🎉 Party", calling: "Calling...", joined: "Joined Party!" }
-};
-
-function safeSetText(id, text) { const el = document.getElementById(id); if (el) el.innerText = text; }
-function applyLanguage(lang) {
-    currentLang = lang; localStorage.setItem('rublocks_lang', lang);
-    const t = translations[lang];
-    safeSetText('lblSettings', t.settings); safeSetText('lblConnections', t.connections);
-}
-
-// --- MAIN INIT ---
+// --- INIT ---
 onAuthStateChanged(auth, async (user) => {
     if (user) {
         currentUser = user;
         const userRef = doc(db, "users", user.uid);
-        applyLanguage(currentLang);
         try {
             let snap = await getDoc(userRef);
             if (!snap.exists()) {
@@ -84,8 +85,8 @@ onAuthStateChanged(auth, async (user) => {
             myUserData = snap.data();
             updateProfileUI();
             loadFriends(user.uid);
-            listenForNotifications(user.uid);
-            listenForChats(user.uid); // Запуск прослушки чатов
+            listenForChats(user.uid);
+            listenForIncomingCalls(user.uid); // СЛУШАЕМ ЗВОНКИ
         } catch (e) { console.error(e); }
     } else {
         document.body.innerHTML = `<button onclick="window.location.href='index.html'" style="margin:50px; padding:20px;">Login Again</button>`;
@@ -98,57 +99,163 @@ function updateProfileUI() {
     myAvatar.src = myUserData.avatar;
 }
 
-// --- FRIENDS & CHAT ---
-async function loadFriends(uid) {
-    friendsContainer.innerHTML = "";
-    const snap = await getDocs(collection(db, `users/${uid}/friends`));
-    snap.forEach(doc => {
-        const f = doc.data();
-        const div = document.createElement('div');
-        div.className = 'friend-card';
-        div.innerHTML = `<img src="${f.avatar}"><span>${f.username}</span>`;
-        div.onclick = () => startPrivateChat(f);
-        friendsContainer.appendChild(div);
+// --- CALLING SYSTEM ---
+
+// 1. Совершить звонок
+callActionBtn.addEventListener('click', async () => {
+    if (!activeChatId) return;
+    
+    // Получаем участников чата (исключая себя)
+    const chatRef = doc(db, "chats", activeChatId);
+    const chatSnap = await getDoc(chatRef);
+    const participants = chatSnap.data().participants.filter(id => id !== currentUser.uid);
+
+    if (participants.length === 0) return alert("No one to call!");
+
+    alert("Calling...");
+    
+    // Создаем документ звонка
+    const callDoc = await addDoc(collection(db, "calls"), {
+        fromUid: currentUser.uid,
+        fromName: myUserData.username,
+        fromAvatar: myUserData.avatar,
+        toUids: participants, // Кому звоним
+        chatId: activeChatId,
+        status: "ringing",
+        timestamp: Date.now()
+    });
+    
+    currentCallId = callDoc.id;
+    // Сразу открываем выбор игры (как хост)
+    showGameSelector();
+});
+
+// 2. Слушать входящие звонки
+function listenForIncomingCalls(uid) {
+    const q = query(collection(db, "calls"), where("toUids", "array-contains", uid), where("status", "==", "ringing"));
+    
+    onSnapshot(q, (snap) => {
+        if (!snap.empty) {
+            // Берем первый звонок
+            const callData = snap.docs[0].data();
+            currentCallId = snap.docs[0].id;
+            
+            // Показываем экран звонка
+            incomingCallOverlay.style.display = "flex";
+            callerName.innerText = callData.fromName;
+            callerAvatar.src = callData.fromAvatar;
+            callStatusText.innerText = "Incoming Call...";
+        } else {
+            incomingCallOverlay.style.display = "none";
+        }
     });
 }
 
-// --- 1. START PRIVATE CHAT ---
+// 3. Ответить на звонок
+answerCallBtn.addEventListener('click', async () => {
+    incomingCallOverlay.style.display = "none";
+    // Обновляем статус звонка
+    await updateDoc(doc(db, "calls", currentCallId), { status: "accepted" });
+    // Открываем выбор игры
+    showGameSelector();
+});
+
+// 4. Сбросить звонок
+rejectCallBtn.addEventListener('click', async () => {
+    incomingCallOverlay.style.display = "none";
+    await updateDoc(doc(db, "calls", currentCallId), { status: "rejected" });
+});
+
+
+// --- GAME SELECTION ---
+
+function showGameSelector() {
+    gameSelectorOverlay.style.display = "flex";
+    playTogetherBtn.disabled = true;
+    selectedGameText.innerText = "Select a game...";
+    
+    // Сброс выделения
+    gameCards.forEach(c => c.classList.remove('selected'));
+    
+    // Слушаем изменения в документе звонка (чтобы видеть выбор друга)
+    if(currentCallId) {
+        onSnapshot(doc(db, "calls", currentCallId), (snap) => {
+            const data = snap.data();
+            if(data && data.selectedGame) {
+                selectedGameText.innerText = `Selected: ${data.selectedGame}`;
+                playTogetherBtn.disabled = false;
+                
+                // Подсветка
+                gameCards.forEach(c => {
+                    if(c.dataset.game === data.selectedGame) c.classList.add('selected');
+                    else c.classList.remove('selected');
+                });
+            }
+        });
+    }
+}
+
+// Выбор игры кликом
+gameCards.forEach(card => {
+    card.addEventListener('click', async () => {
+        const game = card.dataset.game;
+        
+        // Если есть активный звонок, обновляем выбор для всех
+        if(currentCallId) {
+            await updateDoc(doc(db, "calls", currentCallId), { selectedGame: game });
+        } else {
+            // Если мы просто открыли меню без звонка (для теста)
+            card.classList.add('selected');
+            playSoloBtn.disabled = false;
+        }
+    });
+});
+
+closeGameSelector.addEventListener('click', () => {
+    gameSelectorOverlay.style.display = "none";
+});
+
+// Запуск (Логика-заглушка)
+playSoloBtn.addEventListener('click', () => {
+    alert("Launching Game in Solo Mode...");
+    gameSelectorOverlay.style.display = "none";
+});
+
+playTogetherBtn.addEventListener('click', () => {
+    alert("Launching Game for EVERYONE in the party!");
+    gameSelectorOverlay.style.display = "none";
+});
+
+
+// --- CHAT LOGIC (Стандартная) ---
+
+// 1. Start Private Chat
 async function startPrivateChat(friend) {
     const uids = [currentUser.uid, friend.uid].sort();
     const chatId = `${uids[0]}_${uids[1]}`;
-
     const chatRef = doc(db, "chats", chatId);
     const chatSnap = await getDoc(chatRef);
 
-    // Если чата нет - создаем и сохраняем имена/аватарки
     if (!chatSnap.exists()) {
-        await setDoc(chatRef, {
-            type: "private",
-            participants: [currentUser.uid, friend.uid],
-            names: { [currentUser.uid]: myUserData.username, [friend.uid]: friend.username },
-            avatars: { [currentUser.uid]: myUserData.avatar, [friend.uid]: friend.avatar },
-            lastMessage: "",
-            timestamp: Date.now()
-        });
+        await setDoc(chatRef, { type: "private", participants: [currentUser.uid, friend.uid], names: { [currentUser.uid]: myUserData.username, [friend.uid]: friend.username }, avatars: { [currentUser.uid]: myUserData.avatar, [friend.uid]: friend.avatar }, lastMessage: "", timestamp: Date.now() });
     }
     openChatRoom(chatId, friend.username, false);
 }
 
-// --- 2. OPEN ROOM ---
+// 2. Open Room
 function openChatRoom(chatId, title, isGroup) {
     activeChatId = chatId;
     currentChatIsGroup = isGroup;
     chatRoomTitle.innerText = title;
     
-    // Закрываем списки
+    // Кнопка Party/Call
+    callActionBtn.innerText = isGroup ? "🎉 Party" : "📞 Call";
+    if(isGroup) callActionBtn.classList.add("party"); else callActionBtn.classList.remove("party");
+
     chatListModal.style.display = "none";
     newChatModal.classList.add("hidden");
     chatRoomModal.style.display = "flex";
-    
-    // Настройка кнопки звонка
-    const t = translations[currentLang];
-    callActionBtn.innerText = isGroup ? t.party : t.call;
-    if(isGroup) callActionBtn.classList.add("party"); else callActionBtn.classList.remove("party");
+    messagesContainer.innerHTML = "";
 
     if (activeChatUnsub) activeChatUnsub();
     const q = query(collection(db, `chats/${chatId}/messages`), orderBy("timestamp", "asc"));
@@ -159,93 +266,53 @@ function openChatRoom(chatId, title, isGroup) {
             const m = doc.data();
             const div = document.createElement('div');
             div.className = `message ${m.senderId === currentUser.uid ? 'sent' : 'received'}`;
-            const author = isGroup && m.senderId !== currentUser.uid ? `<span class="msg-author">${m.senderName}</span>` : "";
-            div.innerHTML = `${author}${m.text}`;
+            div.innerHTML = (isGroup && m.senderId !== currentUser.uid ? `<span class="msg-author">${m.senderName}</span>` : "") + m.text;
             messagesContainer.appendChild(div);
         });
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
     });
 }
 
-// --- 3. SEND MESSAGE ---
+// 3. Send
 sendMessageBtn.addEventListener('click', async () => {
     const text = messageInput.value.trim();
     if (!text || !activeChatId) return;
     messageInput.value = "";
-    
-    // Отправляем сообщение
-    await addDoc(collection(db, `chats/${activeChatId}/messages`), {
-        text: text, senderId: currentUser.uid, senderName: myUserData.username, timestamp: Date.now()
-    });
-    
-    // Обновляем список чатов (последнее сообщение)
-    await updateDoc(doc(db, "chats", activeChatId), {
-        lastMessage: text, timestamp: Date.now()
-    });
+    await addDoc(collection(db, `chats/${activeChatId}/messages`), { text: text, senderId: currentUser.uid, senderName: myUserData.username, timestamp: Date.now() });
+    await updateDoc(doc(db, "chats", activeChatId), { lastMessage: text, timestamp: Date.now() });
 });
 
-// --- 4. DISPLAY CHAT LIST ---
+// 4. List Chats
 function listenForChats(uid) {
-    // Слушаем только чаты, где мы есть
     const q = query(collection(db, "chats"), where("participants", "array-contains", uid), orderBy("timestamp", "desc"));
-    
     onSnapshot(q, (snap) => {
         chatListContainer.innerHTML = "";
-        
-        if(snap.empty) {
-            chatListContainer.innerHTML = "<p style='text-align:center; color:#888; margin-top:20px;'>No active chats</p>";
-            return;
-        }
-
+        if(snap.empty) { chatListContainer.innerHTML = "<p style='text-align:center; color:#888; margin-top:20px;'>No active chats</p>"; return; }
         snap.forEach(doc => {
             const c = doc.data();
             const isGroup = c.type === "group";
             let name = "Chat", avatar = "";
+            if (isGroup) { name = c.groupName; avatar = "https://cdn-icons-png.flaticon.com/512/166/166258.png"; } 
+            else { const otherUid = c.participants.find(id => id !== uid); if(c.names && c.names[otherUid]) { name = c.names[otherUid]; avatar = c.avatars[otherUid]; } else { name = "Unknown"; avatar = "https://api.dicebear.com/7.x/avataaars/svg?seed=u"; } }
 
-            if (isGroup) {
-                name = c.groupName;
-                avatar = "https://cdn-icons-png.flaticon.com/512/166/166258.png";
-            } else {
-                // Ищем собеседника
-                const otherUid = c.participants.find(id => id !== uid);
-                // Берем имя из сохраненного объекта names
-                if(c.names && c.names[otherUid]) {
-                    name = c.names[otherUid];
-                    avatar = c.avatars[otherUid];
-                } else {
-                    name = "Unknown";
-                    avatar = "https://api.dicebear.com/7.x/avataaars/svg?seed=u";
-                }
-            }
-
-            const div = document.createElement('div');
-            div.className = 'chat-item';
-            div.innerHTML = `
-                <img src="${avatar}">
-                <div class="chat-details">
-                    <h4>${name}</h4>
-                    <p>${c.lastMessage || "New chat"}</p>
-                </div>
-            `;
+            const div = document.createElement('div'); div.className = 'chat-item';
+            div.innerHTML = `<img src="${avatar}"><div class="chat-details"><h4>${name}</h4><p>${c.lastMessage || "New chat"}</p></div>`;
             div.onclick = () => openChatRoom(doc.id, name, isGroup);
             chatListContainer.appendChild(div);
         });
     });
 }
 
-// --- 5. NEW CHAT BUTTON ---
+// --- NEW CHAT ---
 newChatBtn.addEventListener('click', async () => {
     newChatModal.classList.remove('hidden');
     newChatFriendsList.innerHTML = "Loading...";
     const snap = await getDocs(collection(db, `users/${currentUser.uid}/friends`));
     newChatFriendsList.innerHTML = "";
-    
     if(snap.empty) { newChatFriendsList.innerHTML = "<p>No friends yet</p>"; return; }
-
     snap.forEach(doc => {
         const f = doc.data();
-        const div = document.createElement('div');
-        div.className = 'friend-select-item';
+        const div = document.createElement('div'); div.className = 'friend-select-item';
         div.innerHTML = `<img src="${f.avatar}" width="30" style="border-radius:50%"> ${f.username}`;
         div.onclick = () => startPrivateChat(f);
         newChatFriendsList.appendChild(div);
@@ -253,93 +320,27 @@ newChatBtn.addEventListener('click', async () => {
 });
 closeNewChatModal.addEventListener('click', () => newChatModal.classList.add('hidden'));
 
-// --- GROUP LOGIC ---
-createGroupBtn.addEventListener('click', async () => {
-    createGroupModal.classList.remove('hidden');
-    groupFriendsList.innerHTML = "Loading...";
-    const snap = await getDocs(collection(db, `users/${currentUser.uid}/friends`));
-    groupFriendsList.innerHTML = "";
-    
+// --- FRIENDS LOAD ---
+async function loadFriends(uid) {
+    friendsContainer.innerHTML = "";
+    const snap = await getDocs(collection(db, `users/${uid}/friends`));
     snap.forEach(doc => {
         const f = doc.data();
-        const div = document.createElement('div');
-        div.className = 'friend-select-item';
-        div.innerHTML = `
-            <div style="display:flex; align-items:center; gap:10px;"><img src="${f.avatar}" width="30" style="border-radius:50%"> ${f.username}</div>
-            <input type="checkbox" class="friend-cb" value="${f.uid}">
-        `;
-        groupFriendsList.appendChild(div);
-    });
-});
-
-finishCreateGroupBtn.addEventListener('click', async () => {
-    const name = groupNameInput.value.trim();
-    if (!name) return alert("Enter Name");
-    const cbs = document.querySelectorAll('.friend-cb:checked');
-    if (cbs.length === 0) return alert("Select friend");
-    const parts = [currentUser.uid];
-    cbs.forEach(cb => parts.push(cb.value));
-
-    await addDoc(collection(db, "chats"), {
-        type: "group", groupName: name, participants: parts, lastMessage: "Group created", timestamp: Date.now()
-    });
-    createGroupModal.classList.add('hidden');
-});
-closeGroupModal.addEventListener('click', () => createGroupModal.classList.add('hidden'));
-
-
-// --- COMMON & NAVIGATION ---
-chatFabBtn.addEventListener('click', () => chatListModal.style.display = "flex");
-closeChatListBtn.addEventListener('click', () => chatListModal.style.display = "none");
-backToChatList.addEventListener('click', () => {
-    chatRoomModal.style.display = "none"; chatListModal.style.display = "flex";
-    if (activeChatUnsub) activeChatUnsub(); activeChatId = null;
-});
-
-// Notifications (Shortened for brevity but functional)
-function listenForNotifications(uid) {
-    const q = query(collection(db, "friend_requests"), where("to", "==", uid), where("status", "==", "pending"));
-    onSnapshot(q, (snap) => {
-        const reqs = []; snap.forEach(d => reqs.push({id: d.id, ...d.data()}));
-        const badge = document.getElementById('notifBadge');
-        if (reqs.length > 0) {
-            badge.style.display = "block"; badge.innerText = reqs.length;
-            const drop = document.getElementById('notifDropdown'); drop.innerHTML = "";
-            reqs.forEach(r => {
-                const el = document.createElement('div'); el.className = 'request-item';
-                el.innerHTML = `<img src="${r.fromAvatar}"><div>${r.fromName}</div><div class="req-actions"><button id="a${r.id}" class="btn-accept">✔</button></div>`;
-                drop.appendChild(el);
-                document.getElementById(`a${r.id}`).onclick = async () => {
-                    await setDoc(doc(db, `users/${currentUser.uid}/friends/${r.from}`), { uid: r.from, username: r.fromName, avatar: r.fromAvatar });
-                    await setDoc(doc(db, `users/${r.from}/friends/${currentUser.uid}`), { uid: currentUser.uid, username: myUserData.username, avatar: myUserData.avatar });
-                    await deleteDoc(doc(db, "friend_requests", r.id)); loadFriends(currentUser.uid);
-                };
-            });
-        } else { badge.style.display = "none"; }
+        const div = document.createElement('div'); div.className = 'friend-card';
+        div.innerHTML = `<img src="${f.avatar}"><span>${f.username}</span>`;
+        div.onclick = () => startPrivateChat(f);
+        friendsContainer.appendChild(div);
     });
 }
 
-// Menu Fab
+// --- NAV ---
+const chatFab = document.getElementById('chatFabBtn');
+if(chatFab) chatFab.addEventListener('click', () => chatListModal.style.display = "flex");
+closeChatListBtn.addEventListener('click', () => chatListModal.style.display = "none");
+backToChatList.addEventListener('click', () => { chatRoomModal.style.display = "none"; chatListModal.style.display = "flex"; if (activeChatUnsub) activeChatUnsub(); activeChatId = null; });
+// Menu
 document.getElementById('moreBtn').addEventListener('click', () => document.getElementById('moreMenuPopup').classList.toggle('active'));
 document.getElementById('openSettingsBtn').addEventListener('click', () => document.getElementById('settingsModal').classList.remove('hidden'));
 document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth).then(() => window.location.href = "index.html"));
 document.getElementById('closeSettings').addEventListener('click', () => document.getElementById('settingsModal').classList.add('hidden'));
 document.getElementById('notifBtn').addEventListener('click', () => document.getElementById('notifDropdown').classList.toggle('active'));
-// Search
-document.getElementById('openSearchBtn').addEventListener('click', () => document.getElementById('searchModal').classList.remove('hidden'));
-document.getElementById('closeModal').addEventListener('click', () => document.getElementById('searchModal').classList.add('hidden'));
-document.getElementById('searchActionBtn').addEventListener('click', async () => {
-    const t = document.getElementById('searchInput').value.toLowerCase();
-    const res = document.getElementById('searchResults'); res.innerHTML = "...";
-    const s = await getDocs(collection(db, "users")); res.innerHTML = "";
-    s.forEach(d => {
-        const u = d.data(); if(u.uid === currentUser.uid) return;
-        if(t && !u.username.toLowerCase().includes(t)) return;
-        const d2 = document.createElement('div'); d2.className = 'player-search-card';
-        d2.innerHTML = `<img src="${u.avatar}" width="40" style="border-radius:50%"><h4>${u.username}</h4><button class="add-conn-btn">Add</button>`;
-        res.appendChild(d2);
-        d2.querySelector('button').onclick = async (e) => {
-            e.target.innerText = "."; await addDoc(collection(db, "friend_requests"), { from: currentUser.uid, fromName: myUserData.username, fromAvatar: myUserData.avatar, to: u.uid, status: "pending" }); e.target.innerText = "Ok";
-        };
-    });
-});
