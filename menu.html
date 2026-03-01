@@ -8,7 +8,7 @@
 </head>
 <body>
 
-    <!-- ВЕРХНЯЯ ПАНЕЛЬ -->
+    <!-- ШАПКА -->
     <header class="top-bar">
         <div class="user-info">
             <div class="avatar-circle">
@@ -16,103 +16,114 @@
             </div>
             <div class="user-text">
                 <div style="display: flex; align-items: center; gap: 5px;">
-                    <h2 id="myUsername">Загрузка...</h2>
-                    <!-- Галочка верификации (скрыта по умолчанию) -->
+                    <h2 id="myUsername">...</h2>
                     <span id="verifiedBadge" class="verified-icon" style="display:none;">✔</span>
                 </div>
-                <!-- ID Игрока -->
                 <span class="user-id-tag" id="myUserId">@loading</span>
             </div>
         </div>
 
-        <div style="display:flex; align-items:center; gap: 15px;">
-            <!-- Кнопка Настроек -->
-            <button id="settingsBtn" class="icon-btn">⚙️</button>
-
+        <div style="display:flex; align-items:center;">
             <!-- Колокольчик -->
             <div class="notification-box" id="notifBtn">
                 <span class="bell-icon">🔔</span>
                 <span class="badge" id="notifBadge">0</span>
                 <div class="notif-dropdown" id="notifDropdown">
-                    <p class="empty-msg">Нет новых заявок</p>
+                    <p class="empty-msg" id="lblNoReq">Нет новых заявок</p>
                 </div>
             </div>
-
-            <button id="logoutBtn" class="small-btn">Выйти</button>
         </div>
     </header>
 
-    <!-- СЕКЦИЯ ДРУЗЕЙ (CONNECTIONS) -->
+    <!-- ДРУЗЬЯ -->
     <section class="connections-section">
-        <h3>Connections</h3>
+        <h3 id="lblConnections">Connections</h3>
         <div class="connections-list">
-            <!-- Кнопка поиска -->
             <div class="friend-card add-card" id="openSearchBtn">
                 <div class="plus-icon">+</div>
-                <span>Поиск</span>
+                <span id="lblSearch">Поиск</span>
             </div>
-            
-            <!-- Сюда скрипт загрузит друзей -->
             <div id="friendsContainer" style="display:flex; gap:10px;"></div>
         </div>
     </section>
 
-    <!-- МОДАЛЬНОЕ ОКНО ПОИСКА -->
+    <!-- НИЖНЕЕ МЕНЮ (FAB) -->
+    <div class="bottom-menu-container">
+        <div class="more-menu-popup" id="moreMenuPopup">
+            <button class="menu-item-btn" id="openSettingsBtn">
+                <span>⚙️</span> <span id="lblSettings">Настройки</span>
+            </button>
+            <button class="menu-item-btn" id="logoutBtn" style="color: #ff5555;">
+                <span>🚪</span> <span id="lblLogout">Выйти</span>
+            </button>
+        </div>
+        <button class="fab-btn" id="moreBtn">•••</button>
+    </div>
+
+    <!-- МОДАЛКИ -->
+
+    <!-- ПОИСК -->
     <div id="searchModal" class="modal hidden">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Поиск игроков</h3>
+                <h3 id="lblSearchTitle">Поиск игроков</h3>
                 <button id="closeModal">✕</button>
             </div>
             <div class="search-bar">
-                <input type="text" id="searchInput" placeholder="Введите ник...">
-                <button id="searchActionBtn">Найти</button>
+                <input type="text" id="searchInput" placeholder="Nick...">
+                <button id="searchActionBtn">Go</button>
             </div>
             <div class="players-list" id="searchResults"></div>
         </div>
     </div>
 
-    <!-- МОДАЛЬНОЕ ОКНО НАСТРОЕК -->
+    <!-- НАСТРОЙКИ -->
     <div id="settingsModal" class="modal hidden">
         <div class="modal-content settings-content">
             <div class="modal-header">
-                <h3>Настройки</h3>
+                <h3 id="lblSettingsTitle">Настройки</h3>
                 <button id="closeSettings">✕</button>
             </div>
             
             <div class="settings-body">
+                <!-- Язык -->
+                <div class="setting-group">
+                    <label id="lblLang">Язык / Language</label>
+                    <select id="langSelect">
+                        <option value="ru">Русский</option>
+                        <option value="en">English</option>
+                    </select>
+                </div>
+
                 <!-- Смена Ника -->
                 <div class="setting-group">
-                    <label>Никнейм</label>
+                    <label id="lblNick">Никнейм</label>
                     <div class="row">
-                        <input type="text" id="editNickInput" placeholder="Новый ник">
+                        <input type="text" id="editNickInput">
                         <button id="saveNickBtn">OK</button>
                     </div>
                 </div>
 
-                <!-- ID (Только чтение) -->
+                <!-- ID -->
                 <div class="setting-group">
-                    <label>Ваш ID (@Tag)</label>
+                    <label>ID</label>
                     <input type="text" id="readOnlyId" readonly style="color: #888;">
                 </div>
 
                 <!-- Дата рождения -->
                 <div class="setting-group">
-                    <label>Дата рождения</label>
+                    <label id="lblBirth">Дата рождения</label>
                     <div class="row">
                         <input type="date" id="birthDateInput">
-                        <button id="saveDateBtn">Сохр.</button>
+                        <button id="saveDateBtn">OK</button>
                     </div>
                 </div>
 
-                <!-- Почта и Верификация -->
+                <!-- Почта -->
                 <div class="setting-group" style="margin-top: 20px; border-top: 1px solid #444; padding-top: 10px;">
-                    <label>Статус Email</label>
-                    <p id="emailStatusText" style="font-size: 12px; color: orange;">Не подтвержден</p>
+                    <label id="lblEmailStatus">Статус Email</label>
+                    <p id="emailStatusText" style="font-size: 12px; color: orange;">...</p>
                     <button id="verifyEmailBtn" class="verify-btn">Подтвердить почту</button>
-                    <p style="font-size: 10px; color: #666; margin-top: 5px;">
-                        *Для получения галочки подтвердите почту.
-                    </p>
                 </div>
             </div>
         </div>
