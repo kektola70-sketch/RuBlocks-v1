@@ -1,6 +1,5 @@
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBtElNGI8_4BSDO2XRnTjSw7AnjDQb83Kk",
@@ -23,18 +22,32 @@ const loginBtn = document.getElementById('loginBtn');
 const botCheck = document.getElementById('botCheck');
 const statusMsg = document.getElementById('status-message');
 
-// 1. АВТО-ВХОД
-onAuthStateChanged(auth, (user) => {
-    if (user) {
-        if(statusMsg) {
-            statusMsg.innerText = "Аккаунт найден! Входим...";
-            statusMsg.style.color = "lime";
-        }
-        setTimeout(() => window.location.href = "menu.html", 500);
-    }
-});
+// --- ЛОГИКА АВТОМАТИЗАЦИИ ---
 
-// 2. ВХОД С ЗАПОМИНАНИЕМ
+// Если мы на странице РЕГИСТРАЦИИ (есть кнопка regBtn)
+if (regBtn) {
+    // 1. Сразу выходим из старого аккаунта, чтобы не мешал
+    signOut(auth).then(() => console.log("Сброс сессии для новой регистрации"));
+}
+
+// Если мы на странице ВХОДА (есть кнопка loginBtn)
+if (loginBtn) {
+    // 2. Включаем авто-вход только здесь
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            if(statusMsg) {
+                statusMsg.innerText = "Аккаунт найден! Входим...";
+                statusMsg.style.color = "lime";
+            }
+            setTimeout(() => window.location.href = "menu.html", 500);
+        }
+    });
+}
+
+
+// --- ОБРАБОТЧИКИ КНОПОК ---
+
+// 1. Кнопка ВХОД
 if (loginBtn) {
     loginBtn.addEventListener('click', async () => {
         if (!botCheck.checked) {
@@ -46,17 +59,19 @@ if (loginBtn) {
         const email = emailInput.value;
         const password = passInput.value;
 
+        if (!email || !password) {
+            statusMsg.innerText = "Заполните поля";
+            statusMsg.style.color = "red";
+            return;
+        }
+
         statusMsg.innerText = "Вход...";
         statusMsg.style.color = "yellow";
 
         try {
-            // ВАЖНО: Принудительно включаем запоминание перед входом
-            await setPersistence(auth, browserLocalPersistence);
-            
+            await setPersistence(auth, browserLocalPersistence); // Запоминаем
             await signInWithEmailAndPassword(auth, email, password);
-            statusMsg.innerText = "Успех!";
-            statusMsg.style.color = "lime";
-            // onAuthStateChanged сработает сам
+            // onAuthStateChanged сработает сам и перекинет
         } catch (error) {
             statusMsg.innerText = "Ошибка: " + error.message;
             statusMsg.style.color = "red";
@@ -64,31 +79,36 @@ if (loginBtn) {
     });
 }
 
-// 3. РЕГИСТРАЦИЯ С ЗАПОМИНАНИЕМ
+// 2. Кнопка РЕГИСТРАЦИЯ
 if (regBtn) {
     regBtn.addEventListener('click', async () => {
         const email = emailInput.value;
         const password = passInput.value;
 
         if (password.length < 6) {
-            statusMsg.innerText = "Пароль < 6 символов!";
+            statusMsg.innerText = "Пароль слишком короткий!";
             statusMsg.style.color = "red";
             return;
         }
 
-        statusMsg.innerText = "Создание...";
+        statusMsg.innerText = "Создание аккаунта...";
         statusMsg.style.color = "yellow";
 
         try {
-            // ВАЖНО: Принудительно включаем запоминание
-            await setPersistence(auth, browserLocalPersistence);
-
+            // Сначала создаем
             await createUserWithEmailAndPassword(auth, email, password);
-            statusMsg.innerText = "Готово! Входим...";
+            
+            // Если успешно - пишем и перекидываем ВРУЧНУЮ
+            statusMsg.innerText = "Успех! Переход...";
             statusMsg.style.color = "lime";
+            
+            setTimeout(() => {
+                window.location.href = "menu.html";
+            }, 1000);
+
         } catch (error) {
             statusMsg.innerText = "Ошибка: " + error.message;
             statusMsg.style.color = "red";
         }
     });
-};
+}
