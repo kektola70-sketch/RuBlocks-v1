@@ -21,28 +21,47 @@ const regBtn = document.getElementById('registerBtn');
 const loginBtn = document.getElementById('loginBtn');
 const botCheck = document.getElementById('botCheck');
 const statusMsg = document.getElementById('status-message');
+const goRegisterLink = document.getElementById('goRegister'); // Ссылка "Создать аккаунт"
 
 // ==========================================
-// СТРАНИЦА ВХОДА (index.html)
+// ЛОГИКА СТРАНИЦЫ ВХОДА (index.html)
 // ==========================================
 if (loginBtn) {
-    console.log("Мы на странице Входа. Включаем авто-вход.");
+    let autoRedirectTimer = null; // Таймер переадресации
 
-    // 1. АВТО-ПЕРЕАДРЕСАЦИЯ (Работает только здесь!)
+    // 1. АВТО-ВХОД
     onAuthStateChanged(auth, (user) => {
         if (user) {
-            console.log("Пользователь найден, переходим в меню...");
-            if(statusMsg) {
-                statusMsg.innerText = "Аккаунт найден! Входим...";
-                statusMsg.style.color = "lime";
-            }
-            setTimeout(() => window.location.href = "menu.html", 500);
+            statusMsg.innerText = `Привет, ${user.email}! Входим...`;
+            statusMsg.style.color = "lime";
+            
+            // Задержка 1.5 сек, чтобы ты успел нажать "Создать аккаунт", если передумал
+            autoRedirectTimer = setTimeout(() => {
+                window.location.href = "menu.html";
+            }, 1500);
         }
     });
 
-    // 2. КНОПКА ВОЙТИ
+    // 2. ЕСЛИ НАЖАЛИ "СОЗДАТЬ АККАУНТ"
+    if (goRegisterLink) {
+        goRegisterLink.addEventListener('click', (e) => {
+            e.preventDefault(); // Остановить стандартный клик
+            
+            // Остановить авто-переход в меню
+            if (autoRedirectTimer) clearTimeout(autoRedirectTimer);
+            
+            statusMsg.innerText = "Переход на регистрацию...";
+            
+            // Выходим из старого аккаунта и идем на регистрацию
+            signOut(auth).then(() => {
+                window.location.href = "register.html";
+            });
+        });
+    }
+
+    // 3. КНОПКА ВОЙТИ
     loginBtn.addEventListener('click', async () => {
-        if (botCheck && !botCheck.checked) {
+        if (!botCheck.checked) {
             statusMsg.innerText = "⛔ Подтвердите, что вы не робот!";
             statusMsg.style.color = "red";
             return;
@@ -55,9 +74,9 @@ if (loginBtn) {
         statusMsg.style.color = "yellow";
 
         try {
-            await setPersistence(auth, browserLocalPersistence); // Запоминаем
+            await setPersistence(auth, browserLocalPersistence);
             await signInWithEmailAndPassword(auth, email, password);
-            // Дальше сработает onAuthStateChanged выше
+            // onAuthStateChanged сработает сам
         } catch (error) {
             statusMsg.innerText = "Ошибка: " + error.message;
             statusMsg.style.color = "red";
@@ -66,15 +85,12 @@ if (loginBtn) {
 }
 
 // ==========================================
-// СТРАНИЦА РЕГИСТРАЦИИ (register.html)
+// ЛОГИКА СТРАНИЦЫ РЕГИСТРАЦИИ (register.html)
 // ==========================================
 if (regBtn) {
-    console.log("Мы на странице Регистрации. Сбрасываем старый вход.");
-    
-    // 1. ПРИНУДИТЕЛЬНЫЙ ВЫХОД (Чтобы не кидало в меню)
-    signOut(auth); 
+    // При заходе сюда - сбрасываем вход
+    signOut(auth);
 
-    // 2. КНОПКА СОЗДАТЬ АККАУНТ
     regBtn.addEventListener('click', async () => {
         const email = emailInput.value;
         const password = passInput.value;
@@ -95,7 +111,6 @@ if (regBtn) {
             statusMsg.innerText = "Успех! Переход...";
             statusMsg.style.color = "lime";
             
-            // Здесь переходим ВРУЧНУЮ, так как авто-вход отключен на этой странице
             setTimeout(() => {
                 window.location.href = "menu.html";
             }, 1000);
