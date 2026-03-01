@@ -5,123 +5,116 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rublocks</title>
     <link rel="stylesheet" href="style.css">
+    <!-- Three.js для 3D игры -->
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+        }
+      }
+    </script>
 </head>
 <body>
 
-    <!-- ШАПКА -->
-    <header class="top-bar">
-        <div class="user-info">
-            <div class="avatar-circle"><img src="" id="myAvatar" alt="Avatar"></div>
-            <div class="user-text">
-                <div style="display: flex; align-items: center; gap: 5px;">
-                    <h2 id="myUsername">...</h2><span id="verifiedBadge" class="verified-icon" style="display:none;">✔</span>
-                </div>
-                <span class="user-id-tag" id="myUserId">@loading</span>
+    <!-- ИГРОВОЙ КОНТЕЙНЕР (Скрыт по умолчанию) -->
+    <div id="gameContainer">
+        <div id="gameUI">
+            <button id="exitGameBtn">Выйти из игры</button>
+            <span id="gameStatusText" style="color:white; margin-left:10px;">Загрузка...</span>
+        </div>
+        <!-- Сюда Three.js вставит Canvas -->
+    </div>
+
+    <!-- ВХОДЯЩИЙ ЗВОНОК -->
+    <div id="incomingCallScreen" class="incoming-call-screen hidden">
+        <img src="" id="incCallerAvatar" class="caller-large-avatar">
+        <h2 id="incCallerName" style="font-size:24px;">User</h2>
+        <p>Входящий звонок...</p>
+        <div class="call-actions">
+            <button id="btnAnswer" class="btn-round-large btn-accept">📞</button>
+            <button id="btnDecline" class="btn-round-large btn-decline">✖</button>
+        </div>
+    </div>
+
+    <!-- АКТИВНЫЙ ЗВОНОК -->
+    <div id="activeCallScreen" class="active-call-screen hidden">
+        <div class="call-header">
+            <button id="minimizeCallBtn" class="minimize-btn">⌄</button>
+            <h2>Звонок</h2>
+            <div style="width:24px;"></div>
+        </div>
+        
+        <!-- Если свернут, показываем это -->
+        <div class="mini-info" style="display:none;">
+            <span style="color:white;">🟢 В звонке</span>
+            <button id="expandCallBtn" style="background:none; border:none; color:white;">⌃</button>
+        </div>
+
+        <div class="call-grid" id="callParticipantsGrid">
+            <!-- Участники -->
+            <div class="call-participant">
+                <img src="" id="myCallAvatar">
+                <span>Я</span>
+                <span class="mic-status">🎤</span>
+            </div>
+            <div class="call-participant">
+                <img src="" id="otherCallAvatar">
+                <span id="otherCallName">...</span>
+                <span class="mic-status">🎤</span>
             </div>
         </div>
-        <div style="display:flex; align-items:center;">
-            <div class="notification-box" id="notifBtn">
-                <span class="bell-icon">🔔</span><span class="badge" id="notifBadge">0</span>
-                <div class="notif-dropdown" id="notifDropdown"><p class="empty-msg" id="lblNoReq">Нет новых заявок</p></div>
+
+        <div class="call-controls-bar">
+            <button id="toggleMicBtn" class="control-btn">🎤</button>
+            <button id="toggleChatBtn" class="control-btn">💬</button>
+            <button id="btnHangup" class="control-btn hangup">📞</button>
+        </div>
+    </div>
+
+    <!-- ОСНОВНОЕ МЕНЮ (Как раньше) -->
+    <header class="top-bar">
+        <div class="user-info">
+            <div class="avatar-circle"><img src="" id="myAvatar"></div>
+            <div class="user-text">
+                <h2 id="myUsername">...</h2>
+                <span class="user-id-tag" id="myUserId">@loading</span>
             </div>
         </div>
     </header>
 
-    <!-- ДРУЗЬЯ -->
     <section class="connections-section">
-        <h3 id="lblConnections">Connections</h3>
+        <h3>Connections</h3>
         <div class="connections-list">
-            <div class="friend-card add-card" id="openSearchBtn"><div class="plus-icon">+</div><span id="lblSearch">Поиск</span></div>
+            <div class="friend-card add-card" id="openSearchBtn"><div class="plus-icon">+</div><span>Поиск</span></div>
             <div id="friendsContainer" style="display:flex; gap:10px;"></div>
         </div>
     </section>
 
-    <!-- НИЖНЕЕ МЕНЮ -->
-    <div class="bottom-menu-container">
-        <button class="fab-btn" id="chatFabBtn">💬</button>
-        <div class="more-menu-popup" id="moreMenuPopup">
-            <button class="menu-item-btn" id="openSettingsBtn"><span>⚙️</span> <span id="lblSettings">Настройки</span></button>
-            <button class="menu-item-btn" id="logoutBtn" style="color: #ff5555;"><span>🚪</span> <span id="lblLogout">Выйти</span></button>
-        </div>
-        <button class="fab-btn" id="moreBtn">•••</button>
-    </div>
-
-    <!-- === ЭКРАНЫ ЧАТА === -->
-    <div id="chatListModal" class="chat-screen hidden" style="display:none;">
-        <div class="chat-header">
-            <h3>Chats</h3>
-            <div style="display:flex; gap:10px;">
-                <button id="newChatBtn" class="small-btn" style="background:#00b06f;">New</button>
-                <button id="createGroupBtn" class="small-btn">Group</button>
-                <button id="closeChatListBtn" style="background:none; border:none; color:white; font-size:24px;">✕</button>
+    <!-- ВЫБОР ИГРЫ -->
+    <div id="gameSelectorModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header"><h3>Выбрать Плейс</h3><button id="closeGameSel">✕</button></div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                <div class="game-card" data-game="pizza">
+                    <img src="https://cdn-icons-png.flaticon.com/512/3132/3132693.png">
+                    <h4>Пиццерия</h4>
+                </div>
+                <div class="game-card" data-game="obby">
+                    <img src="https://cdn-icons-png.flaticon.com/512/3062/3062634.png">
+                    <h4>Obby</h4>
+                </div>
             </div>
-        </div>
-        <div class="chat-list" id="chatListContainer"></div>
-    </div>
-
-    <div id="chatRoomModal" class="chat-screen hidden" style="display:none;">
-        <div class="chat-header">
-            <div style="display:flex; align-items:center; gap:10px;">
-                <button id="backToChatList" style="background:none; border:none; color:white; font-size:20px;">⬅</button>
-                <div id="chatRoomTitle" style="font-weight:bold;">Name</div>
+            <div style="margin-top:20px; display:flex; flex-direction:column; gap:10px;">
+                <button id="playTogetherBtn" class="add-conn-btn" style="padding:15px;" disabled>🎮 Играть с другом (В звонке)</button>
+                <button id="playSoloBtn" class="small-btn" style="background:#444; padding:15px;">👤 Играть одному</button>
             </div>
-            <button id="callActionBtn" class="call-btn">📞 Call</button>
-        </div>
-        <div class="message-area" id="messagesContainer"></div>
-        <div class="message-input-area">
-            <input type="text" id="messageInput" placeholder="Message...">
-            <button class="send-btn" id="sendMessageBtn">➤</button>
         </div>
     </div>
 
-    <!-- === ЭКРАН ВХОДЯЩЕГО ЗВОНКА === -->
-    <div id="incomingCallOverlay" class="call-overlay hidden" style="display:none;">
-        <img src="" id="callerAvatar" class="caller-avatar">
-        <h2 id="callerName">User</h2>
-        <p id="callStatusText">Incoming Call...</p>
-        <div class="call-actions">
-            <button id="answerCallBtn" class="btn-call btn-answer">📞</button>
-            <button id="rejectCallBtn" class="btn-call btn-hangup">✖</button>
-        </div>
-    </div>
-
-    <!-- === ВЫБОР ИГРЫ (Game Selector) === -->
-    <div id="gameSelectorOverlay" class="game-selector-overlay hidden" style="display:none;">
-        <div class="chat-header">
-            <h3>Select Game</h3>
-            <button id="closeGameSelector" style="background:none; border:none; color:white; font-size:24px;">✕</button>
-        </div>
-        <div class="game-grid">
-            <div class="game-card" data-game="Parkour">
-                <img src="https://cdn-icons-png.flaticon.com/512/3062/3062634.png">
-                <h4>Parkour Obby</h4>
-            </div>
-            <div class="game-card" data-game="City">
-                <img src="https://cdn-icons-png.flaticon.com/512/3062/3062652.png">
-                <h4>City Tycoon</h4>
-            </div>
-            <div class="game-card" data-game="Shooter">
-                <img src="https://cdn-icons-png.flaticon.com/512/3062/3062646.png">
-                <h4>Space Shooter</h4>
-            </div>
-            <div class="game-card" data-game="Race">
-                <img src="https://cdn-icons-png.flaticon.com/512/3062/3062664.png">
-                <h4>Car Race</h4>
-            </div>
-        </div>
-        <div class="play-actions">
-            <p id="selectedGameText" style="text-align:center; color:#aaa;">Select a game...</p>
-            <button id="playTogetherBtn" class="btn-play-friends" disabled>🎮 Play with Friend</button>
-            <button id="playSoloBtn" class="btn-play-solo">👤 Play Solo</button>
-        </div>
-    </div>
-
-    <!-- ВСПОМОГАТЕЛЬНЫЕ МОДАЛКИ (Новый чат, Группы и т.д.) -->
-    <div id="newChatModal" class="modal hidden"><div class="modal-content"><div class="modal-header"><h3>Select Friend</h3><button id="closeNewChatModal">✕</button></div><div id="newChatFriendsList" style="overflow-y:auto; flex:1;"></div></div></div>
-    <div id="createGroupModal" class="modal hidden"><div class="modal-content"><div class="modal-header"><h3>New Group</h3><button id="closeGroupModal">✕</button></div><input type="text" id="groupNameInput" placeholder="Group Name" style="width:100%; padding:10px; margin-bottom:10px; background:#444; border:none; color:white;"><div id="groupFriendsList" style="flex:1; overflow-y:auto;"></div><button id="finishCreateGroupBtn" style="margin-top:10px; padding:10px; background:#00b06f; color:white; border:none; width:100%;">Create</button></div></div>
-    <div id="searchModal" class="modal hidden"><div class="modal-content"><div class="modal-header"><h3 id="lblSearchTitle">Поиск игроков</h3><button id="closeModal">✕</button></div><div class="search-bar"><input type="text" id="searchInput" placeholder="Nick..."><button id="searchActionBtn">Go</button></div><div class="players-list" id="searchResults"></div></div></div>
-    <div id="settingsModal" class="modal hidden"><div class="modal-content settings-content"><div class="modal-header"><h3 id="lblSettingsTitle">Настройки</h3><button id="closeSettings">✕</button></div><div class="settings-body"><div class="setting-group"><label id="lblLang">Язык</label><select id="langSelect"><option value="ru">Русский</option><option value="en">English</option></select></div><div class="setting-group"><label id="lblNick">Никнейм</label><div class="row"><input type="text" id="editNickInput"><button id="saveNickBtn">OK</button></div></div><div class="setting-group"><label>ID</label><input type="text" id="readOnlyId" readonly style="color: #888;"></div><div class="setting-group"><label id="lblBirth">Дата рождения</label><div class="row"><input type="date" id="birthDateInput"><button id="saveDateBtn">OK</button></div></div><div class="setting-group" style="margin-top: 20px; border-top: 1px solid #444; padding-top: 10px;"><label id="lblEmailStatus">Статус Email</label><p id="emailStatusText">...</p><button id="verifyEmailBtn" class="verify-btn">Подтвердить</button></div></div></div></div>
+    <!-- СКРЫТЫЙ АУДИО ЭЛЕМЕНТ ДЛЯ ЗВОНКА -->
+    <audio id="remoteAudio" autoplay></audio>
 
     <script type="module" src="menu.js"></script>
+    <script type="module" src="game_pizza.js"></script>
 </body>
 </html>
