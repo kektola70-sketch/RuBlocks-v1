@@ -5,88 +5,153 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Rublocks</title>
     <link rel="stylesheet" href="style.css">
-    <!-- Three.js (Обязательно для 3D) -->
+    <!-- Three.js (Библиотека для 3D) -->
     <script type="importmap">
-      { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+        }
+      }
     </script>
 </head>
 <body>
 
-    <!-- ИГРОВОЙ КОНТЕЙНЕР -->
+    <!-- ИГРОВОЙ ЭКРАН (Скрыт по умолчанию) -->
     <div id="gameContainer">
+        <!-- Интерфейс поверх игры -->
         <div id="gameUI">
             <button id="exitGameBtn">ВЫХОД</button>
-            <div id="joystickZone"><div id="joystickKnob"></div></div>
+            
+            <!-- Джойстик -->
+            <div id="joystickZone">
+                <div id="joystickKnob"></div>
+            </div>
+            
+            <!-- Кнопка Прыжка -->
             <div id="jumpBtn">JUMP</div>
         </div>
     </div>
 
-    <!-- МЕНЮ: ШАПКА -->
+    <!-- ГЛАВНОЕ МЕНЮ -->
+    
+    <!-- Шапка -->
     <header class="top-bar">
         <div class="user-info">
-            <div class="avatar-circle"><img src="" id="myAvatar"></div>
+            <div class="avatar-circle">
+                <img src="" id="myAvatar" alt="Avatar">
+            </div>
             <div class="user-text">
-                <h2 id="myUsername">Загрузка...</h2>
+                <div style="display: flex; align-items: center; gap: 5px;">
+                    <h2 id="myUsername">Загрузка...</h2>
+                    <span id="verifiedBadge" class="verified-icon" style="display:none;">✔</span>
+                </div>
                 <span class="user-id-tag" id="myUserId">@...</span>
             </div>
         </div>
-        <div class="notification-box" id="notifBtn">
-            <span class="bell-icon">🔔</span><span class="badge" id="notifBadge" style="display:none">0</span>
-            <div class="notif-dropdown" id="notifDropdown"><p class="empty-msg">Нет заявок</p></div>
+
+        <div style="display:flex; align-items:center;">
+            <div class="notification-box" id="notifBtn">
+                <span class="bell-icon">🔔</span>
+                <span class="badge" id="notifBadge" style="display:none">0</span>
+                <div class="notif-dropdown" id="notifDropdown">
+                    <p class="empty-msg">Нет новых заявок</p>
+                </div>
+            </div>
         </div>
     </header>
 
-    <!-- МЕНЮ: СПИСОК ДРУЗЕЙ -->
+    <!-- Список Друзей -->
     <section class="connections-section">
         <h3>Connections</h3>
         <div class="connections-list">
-            <div class="friend-card add-card" id="openSearchBtn"><div class="plus-icon">+</div><span>Поиск</span></div>
+            <div class="friend-card add-card" id="openSearchBtn">
+                <div class="plus-icon">+</div>
+                <span>Поиск</span>
+            </div>
             <div id="friendsContainer" style="display:flex; gap:10px;"></div>
         </div>
     </section>
 
-    <!-- НИЖНИЕ КНОПКИ -->
+    <!-- Нижнее Меню (FAB) -->
     <div class="bottom-menu-container">
+        <!-- Кнопка Чата -->
         <button class="fab-btn" id="chatFabBtn">💬</button>
+
+        <!-- Выпадающее меню -->
         <div class="more-menu-popup" id="moreMenuPopup">
-            <button class="menu-item-btn" id="openSettingsBtn">⚙️ Настройки</button>
-            <button class="menu-item-btn" id="logoutBtn" style="color:#ff5555;">🚪 Выйти</button>
+            <button class="menu-item-btn" id="openSettingsBtn">
+                <span>⚙️</span> Настройки
+            </button>
+            <button class="menu-item-btn" id="logoutBtn" style="color: #ff5555;">
+                <span>🚪</span> Выйти
+            </button>
         </div>
+
+        <!-- Кнопка Три Точки -->
         <button class="fab-btn" id="moreBtn">•••</button>
     </div>
 
-    <!-- ОКНА (Поиск, Настройки, Игры) -->
+
+    <!-- МОДАЛЬНЫЕ ОКНА -->
+
+    <!-- 1. Поиск -->
     <div id="searchModal" class="modal hidden">
         <div class="modal-content">
-            <div class="modal-header"><h3>Поиск</h3><button id="closeSearch">✕</button></div>
-            <div class="search-bar"><input type="text" id="searchInput" placeholder="Ник..."><button id="searchActionBtn">Go</button></div>
-            <div id="searchResults" class="players-list"></div>
+            <div class="modal-header">
+                <h3>Поиск игроков</h3>
+                <button id="closeSearch">✕</button>
+            </div>
+            <div class="search-bar">
+                <input type="text" id="searchInput" placeholder="Введите ник...">
+                <button id="searchActionBtn">Найти</button>
+            </div>
+            <div class="players-list" id="searchResults"></div>
         </div>
     </div>
 
+    <!-- 2. Настройки -->
     <div id="settingsModal" class="modal hidden">
         <div class="modal-content settings-content">
-            <div class="modal-header"><h3>Настройки</h3><button id="closeSettings">✕</button></div>
-            <div class="settings-body">
-                <div class="setting-group"><label>Никнейм</label><div class="row"><input type="text" id="editNickInput"><button id="saveNickBtn">OK</button></div></div>
-                <div class="setting-group"><button id="verifyEmailBtn" class="verify-btn">Подтвердить почту</button></div>
+            <div class="modal-header">
+                <h3>Настройки</h3>
+                <button id="closeSettings">✕</button>
             </div>
-        </div>
-    </div>
-
-    <div id="gameSelectorModal" class="modal hidden">
-        <div class="modal-content">
-            <div class="modal-header"><h3>Games</h3><button id="closeGameSel">✕</button></div>
-            <div style="display:grid; grid-template-columns:1fr; gap:10px;">
-                <div class="game-card" id="startPizzaGame">
-                    <img src="https://cdn-icons-png.flaticon.com/512/3132/3132693.png" style="width:50px;">
-                    <h4>Work at a Pizza Place</h4>
-                    <p style="font-size:12px; color:#888;">Remastered Map</p>
+            <div class="settings-body">
+                <div class="setting-group">
+                    <label>Никнейм</label>
+                    <div class="row">
+                        <input type="text" id="editNickInput" placeholder="Новый ник">
+                        <button id="saveNickBtn">OK</button>
+                    </div>
+                </div>
+                <div class="setting-group">
+                    <button id="verifyEmailBtn" class="verify-btn">Подтвердить почту</button>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- 3. Выбор Игры (Game Selector) -->
+    <div id="gameSelectorModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Выбрать Плейс</h3>
+                <button id="closeGameSel">✕</button>
+            </div>
+            
+            <div class="game-grid" style="display: grid; grid-template-columns: 1fr; gap: 15px;">
+                <!-- Карточка Пиццерии -->
+                <div class="game-card" id="startPizzaGame">
+                    <img src="https://cdn-icons-png.flaticon.com/512/3132/3132693.png" style="width: 50px; margin-bottom: 10px;">
+                    <h4>Work at a Pizza Place</h4>
+                    <p style="font-size: 12px; color: #888;">Remastered Map</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Подключаем скрипты -->
     <script type="module" src="menu.js"></script>
+    <script type="module" src="game_pizza.js"></script>
 </body>
 </html>
