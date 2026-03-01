@@ -1,122 +1,149 @@
 import * as THREE from 'three';
 
 let camera, scene, renderer, player;
-let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
 let joystickVector = { x: 0, y: 0 };
 let isJumping = false;
 let verticalVelocity = 0;
 
-export function startGame(gameType) {
+export function startGame() {
     const container = document.getElementById('gameContainer');
     container.style.display = 'block';
 
-    // --- 1. СЦЕНА ---
+    // 1. Инициализация сцены
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x87CEEB); // Небо
+    scene.background = new THREE.Color(0x87CEEB); // Голубое небо
+    scene.fog = new THREE.Fog(0x87CEEB, 10, 50); // Туман для реалистичности
 
-    // --- 2. КАМЕРА ---
-    camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.set(0, 5, 8);
-    camera.lookAt(0, 0, 0);
+    // 2. Камера
+    camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
+    camera.position.set(0, 5, 10);
 
-    // --- 3. РЕНДЕРЕР ---
+    // 3. Рендерер
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.enabled = true; // Тени включены
     container.appendChild(renderer.domElement);
 
-    // --- 4. СВЕТ ---
-    const light = new THREE.DirectionalLight(0xffffff, 1);
-    light.position.set(10, 20, 10);
-    light.castShadow = true;
-    scene.add(light);
-    scene.add(new THREE.AmbientLight(0x404040));
+    // 4. Свет
+    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.8);
+    scene.add(hemiLight);
+    
+    const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+    dirLight.position.set(10, 20, 10);
+    dirLight.castShadow = true;
+    scene.add(dirLight);
 
-    // --- 5. МИР (ПИЦЦЕРИЯ) ---
-    createPizzaPlace();
+    // --- ПОСТРОЕНИЕ МИРА ---
+    createWorld();
 
-    // --- 6. ИГРОК ---
-    const playerGeo = new THREE.BoxGeometry(1, 2, 1); // Высокий кубик
-    const playerMat = new THREE.MeshPhongMaterial({ color: 0x00ff00 });
-    player = new THREE.Mesh(playerGeo, playerMat);
-    player.position.y = 1;
-    player.castShadow = true;
+    // --- ИГРОК ---
+    player = new THREE.Group();
+    
+    // Тело
+    const bodyMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 1.5), new THREE.MeshPhongMaterial({color: 0x0000ff}));
+    bodyMesh.position.y = 0.75;
+    bodyMesh.castShadow = true;
+    player.add(bodyMesh);
+    
+    // Голова
+    const headMesh = new THREE.Mesh(new THREE.SphereGeometry(0.4), new THREE.MeshPhongMaterial({color: 0xffccaa}));
+    headMesh.position.y = 1.8;
+    player.add(headMesh);
+    
     scene.add(player);
 
-    // --- 7. УПРАВЛЕНИЕ (ДЖОЙСТИК) ---
+    // --- УПРАВЛЕНИЕ ---
     setupJoystick();
     
-    // --- 8. КНОПКА ПРЫЖКА ---
+    // Прыжок
     document.getElementById('jumpBtn').addEventListener('touchstart', () => {
-        if (player.position.y <= 1.1) {
-            verticalVelocity = 0.3;
+        if (player.position.y <= 0.1) {
+            verticalVelocity = 0.4;
             isJumping = true;
         }
     });
 
-    // --- 9. ВЫХОД ---
+    // Выход
     document.getElementById('exitGameBtn').addEventListener('click', () => {
         container.style.display = 'none';
-        // Очистка (можно добавить позже)
+        // Остановка рендеринга (очистка памяти)
+        renderer.dispose();
+        container.innerHTML = ""; // Удаляем canvas
+        location.reload(); // Перезагружаем страницу для сброса
     });
 
     animate();
 }
 
-function createPizzaPlace() {
-    // Трава
-    const ground = new THREE.Mesh(
-        new THREE.PlaneGeometry(100, 100),
-        new THREE.MeshPhongMaterial({ color: 0x228b22 })
-    );
-    ground.rotation.x = -Math.PI / 2;
-    ground.receiveShadow = true;
-    scene.add(ground);
+function createWorld() {
+    // 1. Трава
+    const grass = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), new THREE.MeshPhongMaterial({ color: 0x228b22 }));
+    grass.rotation.x = -Math.PI / 2;
+    grass.receiveShadow = true;
+    scene.add(grass);
 
-    // Пол пиццерии
-    const floor = new THREE.Mesh(
-        new THREE.BoxGeometry(20, 0.2, 20),
-        new THREE.MeshPhongMaterial({ color: 0xaaaaaa }) // Серый кафель
-    );
+    // 2. Пол Пиццерии (Кафель - процедурная текстура)
+    const floorSize = 30;
+    const canvas = document.createElement('canvas');
+    canvas.width = 64; canvas.height = 64;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#fff'; ctx.fillRect(0,0,64,64);
+    ctx.fillStyle = '#aaa'; ctx.fillRect(0,0,32,32); ctx.fillRect(32,32,32,32);
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.wrapS = THREE.RepeatWrapping; tex.wrapT = THREE.RepeatWrapping;
+    tex.repeat.set(10, 10);
+
+    const floor = new THREE.Mesh(new THREE.BoxGeometry(floorSize, 0.2, floorSize), new THREE.MeshPhongMaterial({ map: tex }));
     floor.position.y = 0.1;
     floor.receiveShadow = true;
     scene.add(floor);
 
-    // Стены (Группа)
-    const walls = new THREE.Group();
+    // 3. Стены (Коробка с дверью)
+    const wallMat = new THREE.MeshPhongMaterial({ color: 0xffeebb });
     
-    const backWall = new THREE.Mesh(new THREE.BoxGeometry(20, 6, 1), new THREE.MeshPhongMaterial({color: 0xffaa00}));
-    backWall.position.set(0, 3, -10);
-    walls.add(backWall);
+    // Задняя
+    createWall(0, 4, -15, 30, 8, 1, wallMat);
+    // Левая
+    createWall(-15, 4, 0, 1, 8, 30, wallMat);
+    // Правая
+    createWall(15, 4, 0, 1, 8, 30, wallMat);
+    // Передняя (с дыркой для двери)
+    createWall(-8, 4, 15, 14, 8, 1, wallMat);
+    createWall(8, 4, 15, 14, 8, 1, wallMat);
+    createWall(0, 7, 15, 6, 2, 1, wallMat); // Над дверью
 
-    const leftWall = new THREE.Mesh(new THREE.BoxGeometry(1, 6, 20), new THREE.MeshPhongMaterial({color: 0xffaa00}));
-    leftWall.position.set(-10, 3, 0);
-    walls.add(leftWall);
+    // 4. Крыша
+    const roof = new THREE.Mesh(new THREE.ConeGeometry(22, 6, 4), new THREE.MeshPhongMaterial({color: 0x8b0000}));
+    roof.position.set(0, 11, 0);
+    roof.rotation.y = Math.PI / 4;
+    scene.add(roof);
 
-    const rightWall = new THREE.Mesh(new THREE.BoxGeometry(1, 6, 20), new THREE.MeshPhongMaterial({color: 0xffaa00}));
-    rightWall.position.set(10, 3, 0);
-    walls.add(rightWall);
-
-    scene.add(walls);
-
-    // Печи (Черные ящики)
-    const oven = new THREE.Mesh(new THREE.BoxGeometry(4, 3, 2), new THREE.MeshPhongMaterial({color: 0x333333}));
-    oven.position.set(0, 1.5, -8);
-    scene.add(oven);
-    
-    // Огонь в печи
-    const fire = new THREE.PointLight(0xff4500, 5, 10);
-    fire.position.set(0, 1.5, -7);
-    scene.add(fire);
+    // 5. Мебель
+    // Печи
+    createWall(-10, 2, -12, 4, 4, 4, new THREE.MeshPhongMaterial({color: 0x333333}));
+    const fire = new THREE.PointLight(0xff4500, 5, 8); fire.position.set(-10, 2, -10); scene.add(fire);
 
     // Столы
-    for(let i=-5; i<=5; i+=5) {
-        const table = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 1.5, 1.5), new THREE.MeshPhongMaterial({color: 0x8B4513}));
-        table.position.set(i, 0.75, 0);
-        scene.add(table);
+    const tableMat = new THREE.MeshPhongMaterial({color: 0x8B4513});
+    for(let x of [-8, 8]) {
+        for(let z of [0, 8]) {
+            const table = new THREE.Mesh(new THREE.CylinderGeometry(2, 2, 1.5), tableMat);
+            table.position.set(x, 0.8, z);
+            table.castShadow = true;
+            scene.add(table);
+        }
     }
 }
 
+function createWall(x, y, z, w, h, d, material) {
+    const wall = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), material);
+    wall.position.set(x, y, z);
+    wall.castShadow = true;
+    wall.receiveShadow = true;
+    scene.add(wall);
+}
+
+// УПРАВЛЕНИЕ ДЖОЙСТИКОМ
 function setupJoystick() {
     const zone = document.getElementById('joystickZone');
     const knob = document.getElementById('joystickKnob');
@@ -131,29 +158,24 @@ function setupJoystick() {
         e.preventDefault();
         const touchX = e.touches[0].clientX;
         const touchY = e.touches[0].clientY;
-
         let deltaX = touchX - startX;
         let deltaY = touchY - startY;
-
-        // Ограничиваем круг
-        const distance = Math.sqrt(deltaX*deltaX + deltaY*deltaY);
-        const maxDist = 35;
-        if(distance > maxDist) {
-            deltaX = (deltaX / distance) * maxDist;
-            deltaY = (deltaY / distance) * maxDist;
+        
+        const dist = Math.sqrt(deltaX**2 + deltaY**2);
+        const max = 35;
+        if(dist > max) {
+            deltaX = (deltaX / dist) * max;
+            deltaY = (deltaY / dist) * max;
         }
 
         knob.style.transform = `translate(calc(-50% + ${deltaX}px), calc(-50% + ${deltaY}px))`;
-
-        // Нормализуем вектор (от -1 до 1)
-        joystickVector.x = deltaX / maxDist;
-        joystickVector.y = deltaY / maxDist;
+        joystickVector.x = deltaX / max;
+        joystickVector.y = deltaY / max;
     });
 
     zone.addEventListener('touchend', () => {
         knob.style.transform = `translate(-50%, -50%)`;
-        joystickVector.x = 0;
-        joystickVector.y = 0;
+        joystickVector.x = 0; joystickVector.y = 0;
     });
 }
 
@@ -161,27 +183,35 @@ function animate() {
     requestAnimationFrame(animate);
 
     // Движение
-    const speed = 0.15;
-    player.position.x += joystickVector.x * speed;
-    player.position.z += joystickVector.y * speed;
-
-    // Гравитация и Прыжок
-    if (player.position.y > 1) {
-        verticalVelocity -= 0.015; // Гравитация
-    } else if (!isJumping) {
-        verticalVelocity = 0;
-        player.position.y = 1;
+    const speed = 0.2;
+    if (joystickVector.x !== 0 || joystickVector.y !== 0) {
+        player.position.x += joystickVector.x * speed;
+        player.position.z += joystickVector.y * speed;
+        // Поворот игрока
+        player.rotation.y = Math.atan2(-joystickVector.x, -joystickVector.y);
     }
-    
+
+    // Гравитация
+    if (player.position.y > 0) {
+        verticalVelocity -= 0.02;
+    } 
     player.position.y += verticalVelocity;
-    if (player.position.y <= 1) {
-        player.position.y = 1;
+    
+    // Пол
+    if (player.position.y < 0) {
+        player.position.y = 0;
         isJumping = false;
+        verticalVelocity = 0;
     }
 
-    // Камера следит за игроком
-    camera.position.x = player.position.x;
-    camera.position.z = player.position.z + 10;
+    // Камера (Слежение)
+    const targetX = player.position.x;
+    const targetZ = player.position.z + 15;
+    const targetY = player.position.y + 10;
+    
+    camera.position.x += (targetX - camera.position.x) * 0.1;
+    camera.position.z += (targetZ - camera.position.z) * 0.1;
+    camera.position.y += (targetY - camera.position.y) * 0.1;
     camera.lookAt(player.position);
 
     renderer.render(scene, camera);
