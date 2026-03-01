@@ -2,76 +2,27 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Rublocks</title>
     <link rel="stylesheet" href="style.css">
-    <!-- Three.js для 3D игры -->
+    <!-- Three.js -->
     <script type="importmap">
-      {
-        "imports": {
-          "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
-        }
-      }
+      { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
     </script>
 </head>
 <body>
 
-    <!-- ИГРОВОЙ КОНТЕЙНЕР (Скрыт по умолчанию) -->
+    <!-- ИГРОВОЙ КОНТЕЙНЕР (С Джойстиком) -->
     <div id="gameContainer">
+        <!-- Холст игры будет здесь -->
         <div id="gameUI">
-            <button id="exitGameBtn">Выйти из игры</button>
-            <span id="gameStatusText" style="color:white; margin-left:10px;">Загрузка...</span>
-        </div>
-        <!-- Сюда Three.js вставит Canvas -->
-    </div>
-
-    <!-- ВХОДЯЩИЙ ЗВОНОК -->
-    <div id="incomingCallScreen" class="incoming-call-screen hidden">
-        <img src="" id="incCallerAvatar" class="caller-large-avatar">
-        <h2 id="incCallerName" style="font-size:24px;">User</h2>
-        <p>Входящий звонок...</p>
-        <div class="call-actions">
-            <button id="btnAnswer" class="btn-round-large btn-accept">📞</button>
-            <button id="btnDecline" class="btn-round-large btn-decline">✖</button>
+            <button id="exitGameBtn">ВЫХОД</button>
+            <div id="joystickZone"><div id="joystickKnob"></div></div>
+            <div id="jumpBtn">JUMP</div>
         </div>
     </div>
 
-    <!-- АКТИВНЫЙ ЗВОНОК -->
-    <div id="activeCallScreen" class="active-call-screen hidden">
-        <div class="call-header">
-            <button id="minimizeCallBtn" class="minimize-btn">⌄</button>
-            <h2>Звонок</h2>
-            <div style="width:24px;"></div>
-        </div>
-        
-        <!-- Если свернут, показываем это -->
-        <div class="mini-info" style="display:none;">
-            <span style="color:white;">🟢 В звонке</span>
-            <button id="expandCallBtn" style="background:none; border:none; color:white;">⌃</button>
-        </div>
-
-        <div class="call-grid" id="callParticipantsGrid">
-            <!-- Участники -->
-            <div class="call-participant">
-                <img src="" id="myCallAvatar">
-                <span>Я</span>
-                <span class="mic-status">🎤</span>
-            </div>
-            <div class="call-participant">
-                <img src="" id="otherCallAvatar">
-                <span id="otherCallName">...</span>
-                <span class="mic-status">🎤</span>
-            </div>
-        </div>
-
-        <div class="call-controls-bar">
-            <button id="toggleMicBtn" class="control-btn">🎤</button>
-            <button id="toggleChatBtn" class="control-btn">💬</button>
-            <button id="btnHangup" class="control-btn hangup">📞</button>
-        </div>
-    </div>
-
-    <!-- ОСНОВНОЕ МЕНЮ (Как раньше) -->
+    <!-- МЕНЮ: ШАПКА -->
     <header class="top-bar">
         <div class="user-info">
             <div class="avatar-circle"><img src="" id="myAvatar"></div>
@@ -80,8 +31,13 @@
                 <span class="user-id-tag" id="myUserId">@loading</span>
             </div>
         </div>
+        <!-- Колокольчик (Упрощен) -->
+        <div class="notification-box" id="notifBtn">
+            <span class="bell-icon">🔔</span><span class="badge" id="notifBadge" style="display:none">0</span>
+        </div>
     </header>
 
+    <!-- МЕНЮ: ДРУЗЬЯ -->
     <section class="connections-section">
         <h3>Connections</h3>
         <div class="connections-list">
@@ -90,29 +46,47 @@
         </div>
     </section>
 
+    <!-- МЕНЮ: НИЖНИЕ КНОПКИ (ИСПРАВЛЕНО) -->
+    <div class="bottom-menu-container">
+        <!-- Кнопка чата -->
+        <button class="fab-btn" id="chatFabBtn">💬</button>
+        
+        <!-- Выпадающее меню -->
+        <div class="more-menu-popup" id="moreMenuPopup">
+            <button class="menu-item-btn" id="openSettingsBtn">⚙️ Настройки</button>
+            <button class="menu-item-btn" id="logoutBtn" style="color:#ff5555;">🚪 Выйти</button>
+        </div>
+        
+        <!-- Кнопка Три точки -->
+        <button class="fab-btn" id="moreBtn">•••</button>
+    </div>
+
     <!-- ВЫБОР ИГРЫ -->
     <div id="gameSelectorModal" class="modal hidden">
         <div class="modal-content">
-            <div class="modal-header"><h3>Выбрать Плейс</h3><button id="closeGameSel">✕</button></div>
+            <div class="modal-header"><h3>Выбрать Плейс</h3><button id="closeGameSel" style="background:none;border:none;color:white;">✕</button></div>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-                <div class="game-card" data-game="pizza">
+                <div class="game-card" onclick="window.launchGame('pizza')">
                     <img src="https://cdn-icons-png.flaticon.com/512/3132/3132693.png">
                     <h4>Пиццерия</h4>
                 </div>
-                <div class="game-card" data-game="obby">
+                <div class="game-card">
                     <img src="https://cdn-icons-png.flaticon.com/512/3062/3062634.png">
-                    <h4>Obby</h4>
+                    <h4>Obby (Скоро)</h4>
                 </div>
-            </div>
-            <div style="margin-top:20px; display:flex; flex-direction:column; gap:10px;">
-                <button id="playTogetherBtn" class="add-conn-btn" style="padding:15px;" disabled>🎮 Играть с другом (В звонке)</button>
-                <button id="playSoloBtn" class="small-btn" style="background:#444; padding:15px;">👤 Играть одному</button>
             </div>
         </div>
     </div>
 
-    <!-- СКРЫТЫЙ АУДИО ЭЛЕМЕНТ ДЛЯ ЗВОНКА -->
-    <audio id="remoteAudio" autoplay></audio>
+    <!-- ПОИСК ИГРОКОВ -->
+    <div id="searchModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header"><h3>Поиск</h3><button id="closeSearch" style="background:none;border:none;color:white;">✕</button></div>
+            <input type="text" id="searchInput" placeholder="Ник..." style="width:100%;padding:10px;background:#444;border:none;color:white;margin-bottom:10px;">
+            <button id="searchActionBtn" style="width:100%;padding:10px;background:#00b06f;color:white;border:none;">Найти</button>
+            <div id="searchResults" style="margin-top:10px;"></div>
+        </div>
+    </div>
 
     <script type="module" src="menu.js"></script>
     <script type="module" src="game_pizza.js"></script>
