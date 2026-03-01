@@ -14,23 +14,77 @@ body { background-color: #1e1e1e; color: white; margin: 0; }
 .user-id-tag { font-size: 11px; color: #888; }
 .verified-icon { color: #00b0ff; font-size: 14px; margin-left: 5px; }
 
-/* Иконки управления */
-.icon-btn { background: none; border: none; font-size: 22px; cursor: pointer; }
-.small-btn { padding: 5px 10px; font-size: 12px; background: #444; color: white; border: none; border-radius: 5px; }
-
-/* --- КОЛОКОЛЬЧИК --- */
-.notification-box { position: relative; cursor: pointer; margin-right: 5px; }
+/* --- КОЛОКОЛЬЧИК (Остался вверху) --- */
+.notification-box { position: relative; cursor: pointer; }
 .bell-icon { font-size: 24px; }
 .badge { position: absolute; top: -5px; right: -5px; background-color: #ff3b3b; color: white; border-radius: 50%; padding: 2px 6px; font-size: 10px; display: none; }
-.notif-dropdown { position: absolute; top: 40px; right: -10px; width: 280px; background-color: #2d2d2d; border: 1px solid #444; border-radius: 8px; display: none; padding: 10px; z-index: 200; }
+.notif-dropdown { position: absolute; top: 40px; right: 0; width: 280px; background-color: #2d2d2d; border: 1px solid #444; border-radius: 8px; display: none; padding: 10px; z-index: 200; }
 .notif-dropdown.active { display: block; }
-
-/* Заявки */
 .request-item { display: flex; align-items: center; gap: 10px; background: #383838; padding: 8px; border-radius: 6px; margin-bottom: 5px; }
 .request-item img { width: 30px; height: 30px; border-radius: 50%; }
 .req-actions button { border: none; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; margin-left: 5px; color: white; }
 .btn-accept { background: #00b06f; }
 .btn-decline { background: #d32f2f; }
+
+/* --- НИЖНЕЕ МЕНЮ (FAB) --- */
+.bottom-menu-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 150;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+/* Круглая кнопка с точками */
+.fab-btn {
+    width: 50px;
+    height: 50px;
+    background-color: #333;
+    border: 2px solid #555;
+    border-radius: 50%;
+    color: white;
+    font-size: 24px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    transition: 0.2s;
+    padding-bottom: 8px; /* Чтобы точки были по центру */
+}
+.fab-btn:active { transform: scale(0.9); }
+
+/* Выпадающее меню снизу */
+.more-menu-popup {
+    background-color: #2d2d2d;
+    border: 1px solid #444;
+    border-radius: 10px;
+    padding: 10px;
+    margin-bottom: 10px; /* Отступ от круглой кнопки */
+    display: none; /* Скрыто */
+    flex-direction: column;
+    gap: 5px;
+    width: 160px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+}
+.more-menu-popup.active { display: flex; }
+
+.menu-item-btn {
+    background: transparent;
+    border: none;
+    color: white;
+    padding: 10px;
+    text-align: left;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.menu-item-btn:hover { background: #444; }
 
 /* --- CONNECTIONS --- */
 .connections-section { margin-top: 80px; padding: 15px; }
@@ -44,11 +98,10 @@ body { background-color: #1e1e1e; color: white; margin: 0; }
 .login-container { width: 90%; max-width: 400px; margin: 100px auto; text-align: center; background: #2d2d2d; padding: 30px; border-radius: 15px; }
 .input-group input { width: 100%; padding: 12px; margin-bottom: 10px; background: #333; border: 1px solid #555; color: white; border-radius: 5px; }
 .button-group button { width: 100%; padding: 12px; background: #00b06f; color: white; border: none; border-radius: 8px; font-weight: bold; }
-
 .captcha-box { background: #444; padding: 10px; margin: 15px 0; border-radius: 5px; display: flex; align-items: center; gap: 10px; border: 1px solid #666; justify-content: center; }
 .captcha-box input { width: 20px; height: 20px; }
 
-/* --- MODALS & SETTINGS --- */
+/* --- MODALS --- */
 .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; z-index: 300; }
 .modal.hidden { display: none; }
 .modal-content { background: #2d2d2d; width: 90%; max-width: 400px; padding: 20px; border-radius: 15px; display: flex; flex-direction: column; max-height: 80vh; }
