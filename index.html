@@ -3,123 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rublocks - Меню</title>
+    <title>Rublocks - Вход</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-    <!-- ШАПКА -->
-    <header class="top-bar">
-        <div class="user-info">
-            <div class="avatar-circle">
-                <img src="" id="myAvatar" alt="Avatar">
-            </div>
-            <div class="user-text">
-                <div style="display: flex; align-items: center; gap: 5px;">
-                    <h2 id="myUsername">Загрузка...</h2>
-                    <span id="verifiedBadge" class="verified-icon" style="display:none;">✔</span>
-                </div>
-                <span class="user-id-tag" id="myUserId">@loading</span>
-            </div>
+    <div class="login-container">
+        <h1>Rublocks ID</h1>
+        
+        <div class="input-group">
+            <input type="email" id="email" placeholder="Email">
+            <input type="password" id="password" placeholder="Пароль">
         </div>
 
-        <div style="display:flex; align-items:center;">
-            <!-- Колокольчик -->
-            <div class="notification-box" id="notifBtn">
-                <span class="bell-icon">🔔</span>
-                <span class="badge" id="notifBadge">0</span>
-                <div class="notif-dropdown" id="notifDropdown">
-                    <p class="empty-msg">Нет новых заявок</p>
-                </div>
-            </div>
+        <div class="captcha-box">
+            <input type="checkbox" id="botCheck">
+            <label for="botCheck">Я не робот</label>
         </div>
-    </header>
-
-    <!-- ДРУЗЬЯ -->
-    <section class="connections-section">
-        <h3>Connections</h3>
-        <div class="connections-list">
-            <div class="friend-card add-card" id="openSearchBtn">
-                <div class="plus-icon">+</div>
-                <span>Поиск</span>
-            </div>
-            <div id="friendsContainer" style="display:flex; gap:10px;"></div>
-        </div>
-    </section>
-
-    <!-- НИЖНЕЕ МЕНЮ (FAB) -->
-    <div class="bottom-menu-container">
-        <!-- Выпадающий список -->
-        <div class="more-menu-popup" id="moreMenuPopup">
-            <button class="menu-item-btn" id="openSettingsBtn">
-                <span>⚙️</span> Настройки
-            </button>
-            <button class="menu-item-btn" id="logoutBtn" style="color: #ff5555;">
-                <span>🚪</span> Выйти
-            </button>
+        
+        <div class="button-group">
+            <button id="loginBtn">Войти</button>
         </div>
 
-        <!-- Круглая кнопка 3 точки -->
-        <button class="fab-btn" id="moreBtn">•••</button>
+        <p id="status-message"></p>
+
+        <!-- ВАЖНО: У ссылки теперь id="goRegister" и нет href -->
+        <p style="margin-top: 20px; font-size: 14px;">
+            Нет аккаунта? <a href="#" id="goRegister" style="color: #00b06f; cursor: pointer;">Создать аккаунт</a>
+        </p>
     </div>
 
-
-    <!-- МОДАЛКИ (Поиск и Настройки) -->
-
-    <!-- ПОИСК -->
-    <div id="searchModal" class="modal hidden">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Поиск игроков</h3>
-                <button id="closeModal">✕</button>
-            </div>
-            <div class="search-bar">
-                <input type="text" id="searchInput" placeholder="Введите ник...">
-                <button id="searchActionBtn">Найти</button>
-            </div>
-            <div class="players-list" id="searchResults"></div>
-        </div>
-    </div>
-
-    <!-- НАСТРОЙКИ -->
-    <div id="settingsModal" class="modal hidden">
-        <div class="modal-content settings-content">
-            <div class="modal-header">
-                <h3>Настройки</h3>
-                <button id="closeSettings">✕</button>
-            </div>
-            
-            <div class="settings-body">
-                <div class="setting-group">
-                    <label>Никнейм</label>
-                    <div class="row">
-                        <input type="text" id="editNickInput" placeholder="Новый ник">
-                        <button id="saveNickBtn">OK</button>
-                    </div>
-                </div>
-
-                <div class="setting-group">
-                    <label>Ваш ID (@Tag)</label>
-                    <input type="text" id="readOnlyId" readonly style="color: #888;">
-                </div>
-
-                <div class="setting-group">
-                    <label>Дата рождения</label>
-                    <div class="row">
-                        <input type="date" id="birthDateInput">
-                        <button id="saveDateBtn">Сохр.</button>
-                    </div>
-                </div>
-
-                <div class="setting-group" style="margin-top: 20px; border-top: 1px solid #444; padding-top: 10px;">
-                    <label>Статус Email</label>
-                    <p id="emailStatusText" style="font-size: 12px; color: orange;">Не подтвержден</p>
-                    <button id="verifyEmailBtn" class="verify-btn">Подтвердить почту</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script type="module" src="menu.js"></script>
+    <script type="module" src="auth.js"></script>
 </body>
 </html>
