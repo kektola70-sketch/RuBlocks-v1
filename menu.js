@@ -1,6 +1,10 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, addDoc, collection, getDocs, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getAuth, onAuthStateChanged, signOut, sendEmailVerification } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { 
+    getFirestore, doc, getDoc, setDoc, updateDoc, addDoc, deleteDoc, 
+    collection, getDocs, onSnapshot, query, where 
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+// Импорт игры
 import { startGame } from "./game_pizza.js";
 
 const firebaseConfig = {
@@ -19,98 +23,155 @@ const db = getFirestore(app);
 
 let currentUser = null;
 
-// INIT
+// --- 1. АВТОРИЗАЦИЯ И ЗАГРУЗКА ---
 onAuthStateChanged(auth, async (user) => {
     if (user) {
         currentUser = user;
-        const snap = await getDoc(doc(db, "users", user.uid));
-        if(snap.exists()) {
+        try {
+            const userRef = doc(db, "users", user.uid);
+            let snap = await getDoc(userRef);
+
+            // Если профиля нет, создаем
+            if (!snap.exists()) {
+                const newData = {
+                    username: user.email.split('@')[0],
+                    email: user.email,
+                    uid: user.uid,
+                    avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.uid}`,
+                    isVerified: false
+                };
+                await setDoc(userRef, newData);
+                snap = await getDoc(userRef);
+            }
+
             const data = snap.data();
-            document.getElementById('myUsername').innerText = data.username;
-            document.getElementById('myAvatar').src = data.avatar;
-            document.getElementById('myUserId').innerText = "@" + user.uid.slice(0,6);
+            
+            // Заполняем UI
+            const elUser = document.getElementById('myUsername');
+            const elAva = document.getElementById('myAvatar');
+            const elId = document.getElementById('myUserId');
+            
+            if(elUser) elUser.innerText = data.username;
+            if(elAva) elAva.src = data.avatar;
+            if(elId) elId.innerText = "@" + user.uid.slice(0, 6);
+
+            // Грузим друзей
             loadFriends(user.uid);
+
+        } catch (e) {
+            console.error("Ошибка загрузки:", e);
         }
     } else {
+        // Если не вошли - на выход
         window.location.href = "index.html";
     }
 });
 
-// КНОПКИ (Обработчики событий)
-const moreBtn = document.getElementById('moreBtn');
-const moreMenuPopup = document.getElementById('moreMenuPopup');
-const openSearchBtn = document.getElementById('openSearchBtn');
-const searchModal = document.getElementById('searchModal');
-const closeSearch = document.getElementById('closeSearch');
-const searchActionBtn = document.getElementById('searchActionBtn');
-const chatFabBtn = document.getElementById('chatFabBtn');
-const gameSelectorModal = document.getElementById('gameSelectorModal');
-const closeGameSel = document.getElementById('closeGameSel');
-
-// 1. МЕНЮ "ТРИ ТОЧКИ"
-if(moreBtn) {
-    moreBtn.addEventListener('click', () => {
-        moreMenuPopup.classList.toggle('active');
-    });
+// --- 2. ФУНКЦИЯ ДЛЯ БЕЗОПАСНОГО НАЗНАЧЕНИЯ КНОПОК ---
+// Чтобы скрипт не падал, если кнопки еще не прогрузились
+function safeClick(id, callback) {
+    const el = document.getElementById(id);
+    if (el) {
+        // Клонируем узел, чтобы убрать старые обработчики (защита от дублей)
+        const newEl = el.cloneNode(true);
+        el.parentNode.replaceChild(newEl, el);
+        newEl.addEventListener('click', callback);
+    } else {
+        console.warn("Кнопка не найдена:", id);
+    }
 }
 
-// 2. ВЫХОД
-document.getElementById('logoutBtn').addEventListener('click', () => {
-    signOut(auth).then(() => window.location.href = "index.html");
-});
+// --- 3. НАЗНАЧЕНИЕ ВСЕХ КНОПОК ПОСЛЕ ЗАГРУЗКИ ---
+document.addEventListener('DOMContentLoaded', () => {
+    
+    // Нижнее меню (Три точки)
+    safeClick('moreBtn', () => {
+        document.getElementById('moreMenuPopup').classList.toggle('active');
+    });
 
-// 3. ПОИСК
-if(openSearchBtn) openSearchBtn.addEventListener('click', () => searchModal.classList.remove('hidden'));
-if(closeSearch) closeSearch.addEventListener('click', () => searchModal.classList.add('hidden'));
+    // Настройки
+    safeClick('openSettingsBtn', () => {
+        document.getElementById('moreMenuPopup').classList.remove('active');
+        document.getElementById('settingsModal').classList.remove('hidden');
+    });
+    safeClick('closeSettings', () => document.getElementById('settingsModal').classList.add('hidden'));
 
-if(searchActionBtn) {
-    searchActionBtn.addEventListener('click', async () => {
-        const txt = document.getElementById('searchInput').value.toLowerCase();
-        const res = document.getElementById('searchResults');
-        res.innerHTML = "Поиск...";
+    // Выход
+    safeClick('logoutBtn', () => {
+        signOut(auth).then(() => window.location.href = "index.html");
+    });
+
+    // Поиск
+    safeClick('openSearchBtn', () => document.getElementById('searchModal').classList.remove('hidden'));
+    safeClick('closeSearch', () => document.getElementById('searchModal').classList.add('hidden'));
+
+    // Логика Поиска
+    safeClick('searchActionBtn', async () => {
+        const input = document.getElementById('searchInput');
+        const list = document.getElementById('searchResults');
+        if(!input || !list) return;
+
+        const txt = input.value.toLowerCase();
+        list.innerHTML = "Поиск...";
+        
         const snap = await getDocs(collection(db, "users"));
-        res.innerHTML = "";
-        snap.forEach(d => {
-            const u = d.data();
+        list.innerHTML = "";
+        
+        snap.forEach(doc => {
+            const u = doc.data();
             if(u.uid === currentUser.uid) return;
             if(txt && !u.username.toLowerCase().includes(txt)) return;
+
             const div = document.createElement('div');
-            div.style.background = "#333";
-            div.style.padding = "10px";
-            div.style.marginBottom = "5px";
-            div.innerHTML = `<img src="${u.avatar}" width="30"> ${u.username} <button>Add</button>`;
-            div.querySelector('button').onclick = async (e) => {
+            div.className = 'player-search-card'; // Используем класс из CSS
+            div.innerHTML = `
+                <img src="${u.avatar}" width="30" style="border-radius:50%">
+                <h4 style="margin:0; margin-left:10px; flex:1;">${u.username}</h4>
+                <button class="add-conn-btn">Add</button>
+            `;
+            
+            div.querySelector('button').addEventListener('click', async (e) => {
                 e.target.innerText = "Sent";
+                e.target.disabled = true;
                 await addDoc(collection(db, "friend_requests"), {
-                    from: currentUser.uid, fromName: u.username, to: u.uid, status: "pending"
+                    from: currentUser.uid,
+                    fromName: document.getElementById('myUsername').innerText, // Берем актуальное имя
+                    to: u.uid,
+                    status: "pending"
                 });
-            };
-            res.appendChild(div);
+            });
+            list.appendChild(div);
         });
     });
-}
 
-// 4. ДРУЗЬЯ И ЗАПУСК ИГРЫ
+    // ЗАПУСК ИГРЫ (Клик по карточке пиццерии)
+    safeClick('startPizzaGame', () => {
+        document.getElementById('gameSelectorModal').classList.add('hidden');
+        startGame(); // Вызываем функцию из game_pizza.js
+    });
+
+    safeClick('closeGameSel', () => document.getElementById('gameSelectorModal').classList.add('hidden'));
+});
+
+// --- 4. ЗАГРУЗКА ДРУЗЕЙ ---
 async function loadFriends(uid) {
     const cont = document.getElementById('friendsContainer');
+    if(!cont) return;
+    
     cont.innerHTML = "";
     const snap = await getDocs(collection(db, `users/${uid}/friends`));
-    snap.forEach(d => {
-        const f = d.data();
+    
+    snap.forEach(doc => {
+        const f = doc.data();
         const div = document.createElement('div');
         div.className = 'friend-card';
         div.innerHTML = `<img src="${f.avatar}"><span>${f.username}</span>`;
-        // При клике на друга - открываем меню игр (для теста)
-        div.onclick = () => gameSelectorModal.classList.remove('hidden');
+        
+        // При клике на друга - открываем меню выбора игры
+        div.addEventListener('click', () => {
+            document.getElementById('gameSelectorModal').classList.remove('hidden');
+        });
+        
         cont.appendChild(div);
     });
 }
-
-// 5. ЗАКРЫТИЕ ВЫБОРА ИГРЫ
-if(closeGameSel) closeGameSel.addEventListener('click', () => gameSelectorModal.classList.add('hidden'));
-
-// ГЛОБАЛЬНАЯ ФУНКЦИЯ ЗАПУСКА (для HTML onclick)
-window.launchGame = (type) => {
-    gameSelectorModal.classList.add('hidden');
-    startGame(type); // Из game_pizza.js
-};
