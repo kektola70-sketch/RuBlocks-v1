@@ -19,16 +19,21 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// UI Элементы
+// Элементы
 const myUsername = document.getElementById('myUsername');
 const myUserId = document.getElementById('myUserId');
 const myAvatar = document.getElementById('myAvatar');
 const verifiedBadge = document.getElementById('verifiedBadge');
 const friendsContainer = document.getElementById('friendsContainer');
 
-// Настройки
+// Нижнее меню (FAB)
+const moreBtn = document.getElementById('moreBtn');
+const moreMenuPopup = document.getElementById('moreMenuPopup');
+const openSettingsBtn = document.getElementById('openSettingsBtn'); // Кнопка в меню
+const logoutBtn = document.getElementById('logoutBtn'); // Кнопка в меню
+
+// Настройки Модалка
 const settingsModal = document.getElementById('settingsModal');
-const settingsBtn = document.getElementById('settingsBtn');
 const closeSettings = document.getElementById('closeSettings');
 const editNickInput = document.getElementById('editNickInput');
 const saveNickBtn = document.getElementById('saveNickBtn');
@@ -52,16 +57,13 @@ const searchActionBtn = document.getElementById('searchActionBtn');
 let currentUser = null;
 let myUserData = null;
 
-// --- 1. ЗАГРУЗКА ---
+// --- ЗАГРУЗКА ---
 onAuthStateChanged(auth, async (user) => {
     if (user) {
         currentUser = user;
         const userRef = doc(db, "users", user.uid);
-        
         try {
             let snap = await getDoc(userRef);
-
-            // Если профиля нет - создаем
             if (!snap.exists()) {
                 const newData = {
                     username: user.email.split('@')[0],
@@ -73,101 +75,88 @@ onAuthStateChanged(auth, async (user) => {
                 await setDoc(userRef, newData);
                 snap = await getDoc(userRef);
             }
-
             myUserData = snap.data();
             updateProfileUI();
             listenForNotifications(user.uid);
             loadFriends(user.uid);
-
-        } catch (e) {
-            console.error("Ошибка загрузки профиля:", e);
-        }
+        } catch (e) { console.error(e); }
     } else {
         window.location.href = "index.html";
     }
 });
 
 function updateProfileUI() {
-    // Основное инфо
     myUsername.innerText = myUserData.username;
-    myUserId.innerText = "@" + currentUser.uid.slice(0, 8); // ID из первых 8 символов UID
+    myUserId.innerText = "@" + currentUser.uid.slice(0, 8);
     myAvatar.src = myUserData.avatar;
-
-    // Верификация
     if (currentUser.emailVerified) {
-        verifiedBadge.style.display = "inline"; // Показываем галочку
+        verifiedBadge.style.display = "inline";
         emailStatusText.innerText = "Email подтвержден ✅";
         emailStatusText.style.color = "lime";
         verifyEmailBtn.style.display = "none";
     }
-
-    // Заполняем поля настроек
     editNickInput.value = myUserData.username;
     readOnlyId.value = "@" + currentUser.uid.slice(0, 8);
     if(myUserData.birthDate) birthDateInput.value = myUserData.birthDate;
 }
 
-// --- 2. ДРУЗЬЯ (CONNECTIONS) ---
 async function loadFriends(uid) {
     friendsContainer.innerHTML = "";
-    const friendsRef = collection(db, `users/${uid}/friends`);
-    const snap = await getDocs(friendsRef);
-
-    if (snap.empty) {
-        // friendsContainer.innerHTML = "<span style='font-size:10px; color:#555;'>Пусто</span>";
-        return;
-    }
-
+    const snap = await getDocs(collection(db, `users/${uid}/friends`));
     snap.forEach(doc => {
         const f = doc.data();
         const div = document.createElement('div');
         div.className = 'friend-card';
-        div.innerHTML = `
-            <img src="${f.avatar}">
-            <span>${f.username}</span>
-        `;
+        div.innerHTML = `<img src="${f.avatar}"><span>${f.username}</span>`;
         friendsContainer.appendChild(div);
     });
 }
 
-// --- 3. НАСТРОЙКИ ---
-// Смена ника
+// --- УПРАВЛЕНИЕ МЕНЮ (FAB) ---
+moreBtn.addEventListener('click', () => {
+    moreMenuPopup.classList.toggle('active');
+});
+
+// Открыть настройки из нижнего меню
+openSettingsBtn.addEventListener('click', () => {
+    moreMenuPopup.classList.remove('active'); // Закрыть маленькое меню
+    settingsModal.classList.remove('hidden'); // Открыть модалку
+});
+
+// Выход из нижнего меню
+logoutBtn.addEventListener('click', () => {
+    signOut(auth).then(() => window.location.href = "index.html");
+});
+
+
+// --- НАСТРОЙКИ ---
 saveNickBtn.addEventListener('click', async () => {
     const newName = editNickInput.value.trim();
-    if(newName.length < 3) return alert("Ник слишком короткий");
-
+    if(newName.length < 3) return alert("Ник короткий");
     await updateDoc(doc(db, "users", currentUser.uid), { username: newName });
     myUserData.username = newName;
     updateProfileUI();
     alert("Ник изменен!");
 });
-
-// Дата рождения
 saveDateBtn.addEventListener('click', async () => {
     const date = birthDateInput.value;
     if(!date) return;
     await updateDoc(doc(db, "users", currentUser.uid), { birthDate: date });
     alert("Дата сохранена");
 });
-
-// Верификация
 verifyEmailBtn.addEventListener('click', () => {
     sendEmailVerification(currentUser)
-        .then(() => alert(`Письмо отправлено на ${currentUser.email}. Проверьте почту!`))
+        .then(() => alert(`Письмо отправлено!`))
         .catch(e => alert(e.message));
 });
-
-// Модальное окно настроек
-settingsBtn.addEventListener('click', () => settingsModal.classList.remove('hidden'));
 closeSettings.addEventListener('click', () => settingsModal.classList.add('hidden'));
 
-// --- 4. УВЕДОМЛЕНИЯ И ПОИСК (Как в прошлом коде) ---
+// --- УВЕДОМЛЕНИЯ ---
 function listenForNotifications(uid) {
     const q = query(collection(db, "friend_requests"), where("to", "==", uid), where("status", "==", "pending"));
     onSnapshot(q, (snap) => {
         const reqs = [];
         snap.forEach(d => reqs.push({id: d.id, ...d.data()}));
-        
         if (reqs.length > 0) {
             notifBadge.style.display = "block";
             notifBadge.innerText = reqs.length;
@@ -181,8 +170,7 @@ function listenForNotifications(uid) {
                     <div class="req-actions">
                         <button class="btn-accept" onclick="acceptReq('${r.id}', '${r.from}', '${r.fromName}', '${r.fromAvatar}')">✔</button>
                         <button class="btn-decline" onclick="declineReq('${r.id}')">✖</button>
-                    </div>
-                `;
+                    </div>`;
                 notifDropdown.appendChild(el);
             });
         } else {
@@ -191,46 +179,33 @@ function listenForNotifications(uid) {
         }
     });
 }
-
-// Эти функции должны быть глобальными, чтобы работать через onclick="" в HTML строке выше
 window.acceptReq = async (reqId, fromId, fromName, fromAvatar) => {
-    try {
-        await setDoc(doc(db, `users/${currentUser.uid}/friends/${fromId}`), { uid: fromId, username: fromName, avatar: fromAvatar });
-        await setDoc(doc(db, `users/${fromId}/friends/${currentUser.uid}`), { uid: currentUser.uid, username: myUserData.username, avatar: myUserData.avatar });
-        await deleteDoc(doc(db, "friend_requests", reqId));
-        alert("Вы теперь друзья!");
-        loadFriends(currentUser.uid); // Обновляем список
-    } catch (e) { console.error(e); }
-};
-
-window.declineReq = async (reqId) => {
+    await setDoc(doc(db, `users/${currentUser.uid}/friends/${fromId}`), { uid: fromId, username: fromName, avatar: fromAvatar });
+    await setDoc(doc(db, `users/${fromId}/friends/${currentUser.uid}`), { uid: currentUser.uid, username: myUserData.username, avatar: myUserData.avatar });
     await deleteDoc(doc(db, "friend_requests", reqId));
+    loadFriends(currentUser.uid);
 };
-
+window.declineReq = async (reqId) => await deleteDoc(doc(db, "friend_requests", reqId));
 notifBtn.addEventListener('click', () => notifDropdown.classList.toggle('active'));
 
-// Поиск
+// --- ПОИСК ---
 openSearchBtn.addEventListener('click', () => searchModal.classList.remove('hidden'));
 closeModal.addEventListener('click', () => searchModal.classList.add('hidden'));
-
 searchActionBtn.addEventListener('click', async () => {
     const txt = searchInput.value.toLowerCase();
     searchResults.innerHTML = "Поиск...";
     const snap = await getDocs(collection(db, "users"));
     searchResults.innerHTML = "";
-    
     snap.forEach(d => {
         const u = d.data();
         if(u.uid === currentUser.uid) return;
         if(txt && !u.username.toLowerCase().includes(txt)) return;
-
         const el = document.createElement('div');
         el.className = 'player-search-card';
         el.innerHTML = `
             <img src="${u.avatar}" width="40" style="border-radius:50%">
             <div style="flex:1"><h4>${u.username}</h4></div>
-            <button class="add-conn-btn">Add</button>
-        `;
+            <button class="add-conn-btn">Add</button>`;
         searchResults.appendChild(el);
         el.querySelector('.add-conn-btn').onclick = async (e) => {
             e.target.innerText = "...";
@@ -243,5 +218,3 @@ searchActionBtn.addEventListener('click', async () => {
         };
     });
 });
-
-document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth).then(() => window.location.href = "index.html"));
