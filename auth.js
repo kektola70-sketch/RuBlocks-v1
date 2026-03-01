@@ -17,22 +17,58 @@ const auth = getAuth(app);
 // Элементы
 const emailInput = document.getElementById('email');
 const passInput = document.getElementById('password');
-const regBtn = document.getElementById('registerBtn');
-const loginBtn = document.getElementById('loginBtn');
+const regBtn = document.getElementById('registerBtn'); // Кнопка регистрации
+const loginBtn = document.getElementById('loginBtn'); // Кнопка входа
 const botCheck = document.getElementById('botCheck');
 const statusMsg = document.getElementById('status-message');
 
-// --- ЛОГИКА АВТОМАТИЗАЦИИ ---
-
-// Если мы на странице РЕГИСТРАЦИИ (есть кнопка regBtn)
+// ==========================================
+// ЛОГИКА ДЛЯ СТРАНИЦЫ РЕГИСТРАЦИИ (register.html)
+// ==========================================
 if (regBtn) {
-    // 1. Сразу выходим из старого аккаунта, чтобы не мешал
-    signOut(auth).then(() => console.log("Сброс сессии для новой регистрации"));
+    // 1. Сразу сбрасываем старый вход, чтобы не мешал создавать новый аккаунт
+    signOut(auth).then(() => {
+        console.log("Сессия очищена для регистрации");
+    });
+
+    // 2. Обработка нажатия кнопки
+    regBtn.addEventListener('click', async () => {
+        const email = emailInput.value;
+        const password = passInput.value;
+
+        if (password.length < 6) {
+            statusMsg.innerText = "Пароль минимум 6 символов!";
+            statusMsg.style.color = "red";
+            return;
+        }
+
+        statusMsg.innerText = "Создание...";
+        statusMsg.style.color = "yellow";
+
+        try {
+            // Создаем аккаунт
+            await createUserWithEmailAndPassword(auth, email, password);
+            
+            // Если успешно - пишем и перекидываем
+            statusMsg.innerText = "Успех! Входим...";
+            statusMsg.style.color = "lime";
+            
+            setTimeout(() => {
+                window.location.href = "menu.html";
+            }, 1000);
+
+        } catch (error) {
+            statusMsg.innerText = "Ошибка: " + error.message;
+            statusMsg.style.color = "red";
+        }
+    });
 }
 
-// Если мы на странице ВХОДА (есть кнопка loginBtn)
+// ==========================================
+// ЛОГИКА ДЛЯ СТРАНИЦЫ ВХОДА (index.html)
+// ==========================================
 if (loginBtn) {
-    // 2. Включаем авто-вход только здесь
+    // 1. Только здесь включаем авто-вход
     onAuthStateChanged(auth, (user) => {
         if (user) {
             if(statusMsg) {
@@ -42,15 +78,10 @@ if (loginBtn) {
             setTimeout(() => window.location.href = "menu.html", 500);
         }
     });
-}
 
-
-// --- ОБРАБОТЧИКИ КНОПОК ---
-
-// 1. Кнопка ВХОД
-if (loginBtn) {
+    // 2. Обработка кнопки
     loginBtn.addEventListener('click', async () => {
-        if (!botCheck.checked) {
+        if (botCheck && !botCheck.checked) {
             statusMsg.innerText = "⛔ Подтвердите, что вы не робот!";
             statusMsg.style.color = "red";
             return;
@@ -69,43 +100,10 @@ if (loginBtn) {
         statusMsg.style.color = "yellow";
 
         try {
-            await setPersistence(auth, browserLocalPersistence); // Запоминаем
+            // Запоминаем вход
+            await setPersistence(auth, browserLocalPersistence);
             await signInWithEmailAndPassword(auth, email, password);
-            // onAuthStateChanged сработает сам и перекинет
-        } catch (error) {
-            statusMsg.innerText = "Ошибка: " + error.message;
-            statusMsg.style.color = "red";
-        }
-    });
-}
-
-// 2. Кнопка РЕГИСТРАЦИЯ
-if (regBtn) {
-    regBtn.addEventListener('click', async () => {
-        const email = emailInput.value;
-        const password = passInput.value;
-
-        if (password.length < 6) {
-            statusMsg.innerText = "Пароль слишком короткий!";
-            statusMsg.style.color = "red";
-            return;
-        }
-
-        statusMsg.innerText = "Создание аккаунта...";
-        statusMsg.style.color = "yellow";
-
-        try {
-            // Сначала создаем
-            await createUserWithEmailAndPassword(auth, email, password);
-            
-            // Если успешно - пишем и перекидываем ВРУЧНУЮ
-            statusMsg.innerText = "Успех! Переход...";
-            statusMsg.style.color = "lime";
-            
-            setTimeout(() => {
-                window.location.href = "menu.html";
-            }, 1000);
-
+            // Дальше сработает onAuthStateChanged выше
         } catch (error) {
             statusMsg.innerText = "Ошибка: " + error.message;
             statusMsg.style.color = "red";
