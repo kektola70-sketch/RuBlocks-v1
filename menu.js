@@ -1,9 +1,8 @@
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getAuth, onAuthStateChanged, signOut, sendEmailVerification } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { 
     getFirestore, doc, getDoc, setDoc, updateDoc, addDoc, deleteDoc, 
-    collection, getDocs, onSnapshot, query, where, orderBy, limit 
+    collection, getDocs, onSnapshot, query, where, orderBy 
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -20,7 +19,6 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// Основные переменные
 let currentUser = null;
 let myUserData = null;
 let currentLang = localStorage.getItem('rublocks_lang') || 'ru';
@@ -47,7 +45,11 @@ const sendMessageBtn = document.getElementById('sendMessageBtn');
 const chatRoomTitle = document.getElementById('chatRoomTitle');
 const callActionBtn = document.getElementById('callActionBtn');
 
-// Group UI
+// New Chat & Group
+const newChatBtn = document.getElementById('newChatBtn');
+const newChatModal = document.getElementById('newChatModal');
+const closeNewChatModal = document.getElementById('closeNewChatModal');
+const newChatFriendsList = document.getElementById('newChatFriendsList');
 const createGroupBtn = document.getElementById('createGroupBtn');
 const createGroupModal = document.getElementById('createGroupModal');
 const closeGroupModal = document.getElementById('closeGroupModal');
@@ -55,7 +57,6 @@ const groupFriendsList = document.getElementById('groupFriendsList');
 const finishCreateGroupBtn = document.getElementById('finishCreateGroupBtn');
 const groupNameInput = document.getElementById('groupNameInput');
 
-// Translations
 const translations = {
     ru: { settings: "Настройки", logout: "Выйти", connections: "Connections", search: "Поиск", searchTitle: "Поиск игроков", noReq: "Нет новых заявок", lang: "Язык", nick: "Ник", birth: "ДР", emailSt: "Email", verify: "Подтвердить", emailOk: "OK ✅", emailNo: "Нет ❌", call: "📞 Позвонить", party: "🎉 Party", calling: "Звонок...", joined: "Вы в Party!" },
     en: { settings: "Settings", logout: "Log Out", connections: "Connections", search: "Search", searchTitle: "Search Players", noReq: "No new requests", lang: "Language", nick: "Nick", birth: "Birth Date", emailSt: "Email", verify: "Verify", emailOk: "OK ✅", emailNo: "No ❌", call: "📞 Call", party: "🎉 Party", calling: "Calling...", joined: "Joined Party!" }
@@ -66,10 +67,9 @@ function applyLanguage(lang) {
     currentLang = lang; localStorage.setItem('rublocks_lang', lang);
     const t = translations[lang];
     safeSetText('lblSettings', t.settings); safeSetText('lblConnections', t.connections);
-    // ... (остальные переводы)
 }
 
-// --- INIT ---
+// --- MAIN INIT ---
 onAuthStateChanged(auth, async (user) => {
     if (user) {
         currentUser = user;
@@ -85,10 +85,10 @@ onAuthStateChanged(auth, async (user) => {
             updateProfileUI();
             loadFriends(user.uid);
             listenForNotifications(user.uid);
-            listenForChats(user.uid); // Слушаем список чатов
+            listenForChats(user.uid); // Запуск прослушки чатов
         } catch (e) { console.error(e); }
     } else {
-        document.body.innerHTML = `<button onclick="window.location.href='index.html'">Login</button>`;
+        document.body.innerHTML = `<button onclick="window.location.href='index.html'" style="margin:50px; padding:20px;">Login Again</button>`;
     }
 });
 
@@ -98,7 +98,7 @@ function updateProfileUI() {
     myAvatar.src = myUserData.avatar;
 }
 
-// --- FRIENDS & START CHAT ---
+// --- FRIENDS & CHAT ---
 async function loadFriends(uid) {
     friendsContainer.innerHTML = "";
     const snap = await getDocs(collection(db, `users/${uid}/friends`));
@@ -107,24 +107,20 @@ async function loadFriends(uid) {
         const div = document.createElement('div');
         div.className = 'friend-card';
         div.innerHTML = `<img src="${f.avatar}"><span>${f.username}</span>`;
-        // При клике на друга - открываем личку
         div.onclick = () => startPrivateChat(f);
         friendsContainer.appendChild(div);
     });
 }
 
-// --- CHAT LOGIC ---
-
-// 1. Создать или открыть личный чат
+// --- 1. START PRIVATE CHAT ---
 async function startPrivateChat(friend) {
-    // Проверяем, есть ли уже чат с этим другом
-    // Для простоты, мы создаем ID чата как: minUID_maxUID
     const uids = [currentUser.uid, friend.uid].sort();
     const chatId = `${uids[0]}_${uids[1]}`;
 
     const chatRef = doc(db, "chats", chatId);
     const chatSnap = await getDoc(chatRef);
 
+    // Если чата нет - создаем и сохраняем имена/аватарки
     if (!chatSnap.exists()) {
         await setDoc(chatRef, {
             type: "private",
@@ -138,27 +134,22 @@ async function startPrivateChat(friend) {
     openChatRoom(chatId, friend.username, false);
 }
 
-// 2. Открыть комнату чата
+// --- 2. OPEN ROOM ---
 function openChatRoom(chatId, title, isGroup) {
     activeChatId = chatId;
     currentChatIsGroup = isGroup;
     chatRoomTitle.innerText = title;
     
-    // Настраиваем кнопку звонка
-    const t = translations[currentLang];
-    if (isGroup) {
-        callActionBtn.innerHTML = t.party;
-        callActionBtn.classList.add("party");
-    } else {
-        callActionBtn.innerHTML = t.call;
-        callActionBtn.classList.remove("party");
-    }
-
+    // Закрываем списки
     chatListModal.style.display = "none";
+    newChatModal.classList.add("hidden");
     chatRoomModal.style.display = "flex";
-    messagesContainer.innerHTML = "";
+    
+    // Настройка кнопки звонка
+    const t = translations[currentLang];
+    callActionBtn.innerText = isGroup ? t.party : t.call;
+    if(isGroup) callActionBtn.classList.add("party"); else callActionBtn.classList.remove("party");
 
-    // Слушаем сообщения
     if (activeChatUnsub) activeChatUnsub();
     const q = query(collection(db, `chats/${chatId}/messages`), orderBy("timestamp", "asc"));
     
@@ -168,7 +159,6 @@ function openChatRoom(chatId, title, isGroup) {
             const m = doc.data();
             const div = document.createElement('div');
             div.className = `message ${m.senderId === currentUser.uid ? 'sent' : 'received'}`;
-            // В группе показываем имя автора
             const author = isGroup && m.senderId !== currentUser.uid ? `<span class="msg-author">${m.senderName}</span>` : "";
             div.innerHTML = `${author}${m.text}`;
             messagesContainer.appendChild(div);
@@ -177,43 +167,55 @@ function openChatRoom(chatId, title, isGroup) {
     });
 }
 
-// 3. Отправить сообщение
+// --- 3. SEND MESSAGE ---
 sendMessageBtn.addEventListener('click', async () => {
     const text = messageInput.value.trim();
     if (!text || !activeChatId) return;
-
     messageInput.value = "";
+    
+    // Отправляем сообщение
     await addDoc(collection(db, `chats/${activeChatId}/messages`), {
-        text: text,
-        senderId: currentUser.uid,
-        senderName: myUserData.username,
-        timestamp: Date.now()
+        text: text, senderId: currentUser.uid, senderName: myUserData.username, timestamp: Date.now()
     });
-    // Обновляем последнее сообщение в меню чатов
+    
+    // Обновляем список чатов (последнее сообщение)
     await updateDoc(doc(db, "chats", activeChatId), {
-        lastMessage: text,
-        timestamp: Date.now()
+        lastMessage: text, timestamp: Date.now()
     });
 });
 
-// 4. Список чатов (Realtime)
+// --- 4. DISPLAY CHAT LIST ---
 function listenForChats(uid) {
+    // Слушаем только чаты, где мы есть
     const q = query(collection(db, "chats"), where("participants", "array-contains", uid), orderBy("timestamp", "desc"));
+    
     onSnapshot(q, (snap) => {
         chatListContainer.innerHTML = "";
+        
+        if(snap.empty) {
+            chatListContainer.innerHTML = "<p style='text-align:center; color:#888; margin-top:20px;'>No active chats</p>";
+            return;
+        }
+
         snap.forEach(doc => {
             const c = doc.data();
             const isGroup = c.type === "group";
-            let name, avatar;
+            let name = "Chat", avatar = "";
 
             if (isGroup) {
                 name = c.groupName;
-                avatar = "https://cdn-icons-png.flaticon.com/512/166/166258.png"; // Иконка группы
+                avatar = "https://cdn-icons-png.flaticon.com/512/166/166258.png";
             } else {
-                // Ищем ID собеседника
+                // Ищем собеседника
                 const otherUid = c.participants.find(id => id !== uid);
-                name = c.names[otherUid];
-                avatar = c.avatars[otherUid];
+                // Берем имя из сохраненного объекта names
+                if(c.names && c.names[otherUid]) {
+                    name = c.names[otherUid];
+                    avatar = c.avatars[otherUid];
+                } else {
+                    name = "Unknown";
+                    avatar = "https://api.dicebear.com/7.x/avataaars/svg?seed=u";
+                }
             }
 
             const div = document.createElement('div');
@@ -222,7 +224,7 @@ function listenForChats(uid) {
                 <img src="${avatar}">
                 <div class="chat-details">
                     <h4>${name}</h4>
-                    <p>${c.lastMessage || "Start chatting..."}</p>
+                    <p>${c.lastMessage || "New chat"}</p>
                 </div>
             `;
             div.onclick = () => openChatRoom(doc.id, name, isGroup);
@@ -231,11 +233,30 @@ function listenForChats(uid) {
     });
 }
 
-// --- GROUP LOGIC ---
+// --- 5. NEW CHAT BUTTON ---
+newChatBtn.addEventListener('click', async () => {
+    newChatModal.classList.remove('hidden');
+    newChatFriendsList.innerHTML = "Loading...";
+    const snap = await getDocs(collection(db, `users/${currentUser.uid}/friends`));
+    newChatFriendsList.innerHTML = "";
+    
+    if(snap.empty) { newChatFriendsList.innerHTML = "<p>No friends yet</p>"; return; }
 
+    snap.forEach(doc => {
+        const f = doc.data();
+        const div = document.createElement('div');
+        div.className = 'friend-select-item';
+        div.innerHTML = `<img src="${f.avatar}" width="30" style="border-radius:50%"> ${f.username}`;
+        div.onclick = () => startPrivateChat(f);
+        newChatFriendsList.appendChild(div);
+    });
+});
+closeNewChatModal.addEventListener('click', () => newChatModal.classList.add('hidden'));
+
+// --- GROUP LOGIC ---
 createGroupBtn.addEventListener('click', async () => {
     createGroupModal.classList.remove('hidden');
-    groupFriendsList.innerHTML = "Loading friends...";
+    groupFriendsList.innerHTML = "Loading...";
     const snap = await getDocs(collection(db, `users/${currentUser.uid}/friends`));
     groupFriendsList.innerHTML = "";
     
@@ -244,10 +265,8 @@ createGroupBtn.addEventListener('click', async () => {
         const div = document.createElement('div');
         div.className = 'friend-select-item';
         div.innerHTML = `
-            <div style="display:flex; align-items:center; gap:10px;">
-                <img src="${f.avatar}" width="30" style="border-radius:50%"> ${f.username}
-            </div>
-            <input type="checkbox" class="friend-checkbox" value="${f.uid}" data-name="${f.username}">
+            <div style="display:flex; align-items:center; gap:10px;"><img src="${f.avatar}" width="30" style="border-radius:50%"> ${f.username}</div>
+            <input type="checkbox" class="friend-cb" value="${f.uid}">
         `;
         groupFriendsList.appendChild(div);
     });
@@ -255,59 +274,29 @@ createGroupBtn.addEventListener('click', async () => {
 
 finishCreateGroupBtn.addEventListener('click', async () => {
     const name = groupNameInput.value.trim();
-    if (!name) return alert("Enter group name");
-    
-    const checkboxes = document.querySelectorAll('.friend-checkbox:checked');
-    if (checkboxes.length === 0) return alert("Select at least 1 friend");
-    if (checkboxes.length > 9) return alert("Max 10 people total");
-
-    const participants = [currentUser.uid];
-    checkboxes.forEach(cb => participants.push(cb.value));
+    if (!name) return alert("Enter Name");
+    const cbs = document.querySelectorAll('.friend-cb:checked');
+    if (cbs.length === 0) return alert("Select friend");
+    const parts = [currentUser.uid];
+    cbs.forEach(cb => parts.push(cb.value));
 
     await addDoc(collection(db, "chats"), {
-        type: "group",
-        groupName: name,
-        participants: participants,
-        lastMessage: "Group created",
-        timestamp: Date.now()
+        type: "group", groupName: name, participants: parts, lastMessage: "Group created", timestamp: Date.now()
     });
-
     createGroupModal.classList.add('hidden');
-    alert("Group created!");
 });
-
 closeGroupModal.addEventListener('click', () => createGroupModal.classList.add('hidden'));
 
-// --- CALLS ---
-callActionBtn.addEventListener('click', () => {
-    const t = translations[currentLang];
-    if (currentChatIsGroup) {
-        alert(t.joined);
-    } else {
-        alert(t.calling);
-    }
-});
 
-// --- NAVIGATION ---
-chatFabBtn.addEventListener('click', () => {
-    chatListModal.style.display = "flex";
-});
-closeChatListBtn.addEventListener('click', () => {
-    chatListModal.style.display = "none";
-});
+// --- COMMON & NAVIGATION ---
+chatFabBtn.addEventListener('click', () => chatListModal.style.display = "flex");
+closeChatListBtn.addEventListener('click', () => chatListModal.style.display = "none");
 backToChatList.addEventListener('click', () => {
-    chatRoomModal.style.display = "none";
-    chatListModal.style.display = "flex";
-    if (activeChatUnsub) activeChatUnsub(); // Stop listening to messages
-    activeChatId = null;
+    chatRoomModal.style.display = "none"; chatListModal.style.display = "flex";
+    if (activeChatUnsub) activeChatUnsub(); activeChatId = null;
 });
 
-// --- Остальные функции (Уведомления, Настройки, Поиск) ---
-// (Оставлены без изменений из прошлого ответа, чтобы код был полным и рабочим)
-// ... Сюда нужно вставить код уведомлений и поиска из прошлого ответа, 
-// но так как они не менялись, я их сокращу для компактности, но они ОБЯЗАНЫ быть тут.
-
-// --- УВЕДОМЛЕНИЯ ---
+// Notifications (Shortened for brevity but functional)
 function listenForNotifications(uid) {
     const q = query(collection(db, "friend_requests"), where("to", "==", uid), where("status", "==", "pending"));
     onSnapshot(q, (snap) => {
@@ -318,22 +307,39 @@ function listenForNotifications(uid) {
             const drop = document.getElementById('notifDropdown'); drop.innerHTML = "";
             reqs.forEach(r => {
                 const el = document.createElement('div'); el.className = 'request-item';
-                el.innerHTML = `<img src="${r.fromAvatar}"><div><b>${r.fromName}</b> req</div><div class="req-actions"><button id="ac${r.id}" class="btn-accept">✔</button></div>`;
+                el.innerHTML = `<img src="${r.fromAvatar}"><div>${r.fromName}</div><div class="req-actions"><button id="a${r.id}" class="btn-accept">✔</button></div>`;
                 drop.appendChild(el);
-                document.getElementById(`ac${r.id}`).onclick = async () => {
+                document.getElementById(`a${r.id}`).onclick = async () => {
                     await setDoc(doc(db, `users/${currentUser.uid}/friends/${r.from}`), { uid: r.from, username: r.fromName, avatar: r.fromAvatar });
                     await setDoc(doc(db, `users/${r.from}/friends/${currentUser.uid}`), { uid: currentUser.uid, username: myUserData.username, avatar: myUserData.avatar });
-                    await deleteDoc(doc(db, "friend_requests", r.id));
-                    loadFriends(currentUser.uid);
+                    await deleteDoc(doc(db, "friend_requests", r.id)); loadFriends(currentUser.uid);
                 };
             });
         } else { badge.style.display = "none"; }
     });
 }
 
-// FAB Menu
+// Menu Fab
 document.getElementById('moreBtn').addEventListener('click', () => document.getElementById('moreMenuPopup').classList.toggle('active'));
 document.getElementById('openSettingsBtn').addEventListener('click', () => document.getElementById('settingsModal').classList.remove('hidden'));
 document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth).then(() => window.location.href = "index.html"));
 document.getElementById('closeSettings').addEventListener('click', () => document.getElementById('settingsModal').classList.add('hidden'));
 document.getElementById('notifBtn').addEventListener('click', () => document.getElementById('notifDropdown').classList.toggle('active'));
+// Search
+document.getElementById('openSearchBtn').addEventListener('click', () => document.getElementById('searchModal').classList.remove('hidden'));
+document.getElementById('closeModal').addEventListener('click', () => document.getElementById('searchModal').classList.add('hidden'));
+document.getElementById('searchActionBtn').addEventListener('click', async () => {
+    const t = document.getElementById('searchInput').value.toLowerCase();
+    const res = document.getElementById('searchResults'); res.innerHTML = "...";
+    const s = await getDocs(collection(db, "users")); res.innerHTML = "";
+    s.forEach(d => {
+        const u = d.data(); if(u.uid === currentUser.uid) return;
+        if(t && !u.username.toLowerCase().includes(t)) return;
+        const d2 = document.createElement('div'); d2.className = 'player-search-card';
+        d2.innerHTML = `<img src="${u.avatar}" width="40" style="border-radius:50%"><h4>${u.username}</h4><button class="add-conn-btn">Add</button>`;
+        res.appendChild(d2);
+        d2.querySelector('button').onclick = async (e) => {
+            e.target.innerText = "."; await addDoc(collection(db, "friend_requests"), { from: currentUser.uid, fromName: myUserData.username, fromAvatar: myUserData.avatar, to: u.uid, status: "pending" }); e.target.innerText = "Ok";
+        };
+    });
+});
