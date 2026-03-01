@@ -1,4 +1,3 @@
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getAuth, onAuthStateChanged, signOut, sendEmailVerification } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { 
@@ -80,39 +79,40 @@ const translations = {
     }
 };
 
-// Функция безопасного перевода (не ломает скрипт, если элемента нет)
+// Безопасная функция для текста (защита от ошибок)
 function safeSetText(id, text) {
     const el = document.getElementById(id);
     if (el) el.innerText = text;
 }
 
 function applyLanguage(lang) {
-    currentLang = lang;
-    localStorage.setItem('rublocks_lang', lang);
-    const t = translations[lang];
+    try {
+        currentLang = lang;
+        localStorage.setItem('rublocks_lang', lang);
+        const t = translations[lang];
 
-    safeSetText('lblSettings', t.settings);
-    safeSetText('lblLogout', t.logout);
-    safeSetText('lblConnections', t.connections);
-    safeSetText('lblSearch', t.search);
-    safeSetText('lblSearchTitle', t.searchTitle);
-    safeSetText('lblSettingsTitle', t.settings);
-    safeSetText('lblLang', t.lang);
-    safeSetText('lblNick', t.nick);
-    safeSetText('lblBirth', t.birth);
-    safeSetText('lblEmailStatus', t.emailSt);
-    
-    // Текст внутри "Нет заявок" обновляем только если он виден
-    const emptyMsg = document.querySelector('.empty-msg');
-    if(emptyMsg) emptyMsg.innerText = t.noReq;
-
-    if(verifyEmailBtn) verifyEmailBtn.innerText = t.verify;
-    
-    if (currentUser && emailStatusText) {
-        emailStatusText.innerText = currentUser.emailVerified ? t.emailOk : t.emailNo;
+        safeSetText('lblSettings', t.settings);
+        safeSetText('lblLogout', t.logout);
+        safeSetText('lblConnections', t.connections);
+        safeSetText('lblSearch', t.search);
+        safeSetText('lblSearchTitle', t.searchTitle);
+        safeSetText('lblSettingsTitle', t.settings);
+        safeSetText('lblLang', t.lang);
+        safeSetText('lblNick', t.nick);
+        safeSetText('lblBirth', t.birth);
+        safeSetText('lblEmailStatus', t.emailSt);
+        
+        const emptyMsg = document.querySelector('.empty-msg');
+        if(emptyMsg) emptyMsg.innerText = t.noReq;
+        if(verifyEmailBtn) verifyEmailBtn.innerText = t.verify;
+        
+        if (currentUser && emailStatusText) {
+            emailStatusText.innerText = currentUser.emailVerified ? t.emailOk : t.emailNo;
+        }
+        if(langSelect) langSelect.value = lang;
+    } catch(e) {
+        console.error("Ошибка перевода:", e);
     }
-    
-    if(langSelect) langSelect.value = lang;
 }
 
 if(langSelect) {
@@ -126,13 +126,12 @@ onAuthStateChanged(auth, async (user) => {
         currentUser = user;
         const userRef = doc(db, "users", user.uid);
         
-        // Применяем язык сразу
         applyLanguage(currentLang);
 
         try {
             let snap = await getDoc(userRef);
             
-            // Если профиля нет — создаем (автоматическое исправление)
+            // Если профиля нет
             if (!snap.exists()) {
                 const newData = {
                     username: user.email.split('@')[0],
@@ -152,39 +151,53 @@ onAuthStateChanged(auth, async (user) => {
 
         } catch (e) {
             console.error(e);
-            alert("Критическая ошибка загрузки: " + e.message);
+            alert("Ошибка данных: " + e.message);
         }
     } else {
-        window.location.href = "index.html";
+        // !!! ВОТ ТУТ БЫЛА ПЕТЛЯ !!!
+        // Вместо автоматического редиректа, показываем кнопку.
+        // Это остановит бесконечную перезагрузку.
+        document.body.innerHTML = `
+            <div style="text-align:center; padding:50px; color:white;">
+                <h2>Сессия истекла</h2>
+                <button onclick="window.location.href='index.html'" 
+                style="padding:10px 20px; background:#00b06f; border:none; color:white; border-radius:5px;">
+                Войти заново
+                </button>
+            </div>
+        `;
     }
 });
 
 function updateProfileUI() {
     if(!myUserData) return;
     
-    myUsername.innerText = myUserData.username;
-    myUserId.innerText = "@" + currentUser.uid.slice(0, 8);
-    myAvatar.src = myUserData.avatar;
+    if(myUsername) myUsername.innerText = myUserData.username;
+    if(myUserId) myUserId.innerText = "@" + currentUser.uid.slice(0, 8);
+    if(myAvatar) myAvatar.src = myUserData.avatar;
     
     const t = translations[currentLang];
 
     if (currentUser.emailVerified) {
-        verifiedBadge.style.display = "inline";
-        emailStatusText.innerText = t.emailOk;
-        emailStatusText.style.color = "lime";
-        verifyEmailBtn.style.display = "none";
+        if(verifiedBadge) verifiedBadge.style.display = "inline";
+        if(emailStatusText) {
+            emailStatusText.innerText = t.emailOk;
+            emailStatusText.style.color = "lime";
+        }
+        if(verifyEmailBtn) verifyEmailBtn.style.display = "none";
     } else {
-        emailStatusText.innerText = t.emailNo;
+        if(emailStatusText) emailStatusText.innerText = t.emailNo;
     }
 
-    editNickInput.value = myUserData.username;
-    readOnlyId.value = "@" + currentUser.uid.slice(0, 8);
-    if(myUserData.birthDate) birthDateInput.value = myUserData.birthDate;
+    if(editNickInput) editNickInput.value = myUserData.username;
+    if(readOnlyId) readOnlyId.value = "@" + currentUser.uid.slice(0, 8);
+    if(myUserData.birthDate && birthDateInput) birthDateInput.value = myUserData.birthDate;
 }
 
 // --- ФУНКЦИИ ---
 
 async function loadFriends(uid) {
+    if(!friendsContainer) return;
     friendsContainer.innerHTML = "";
     try {
         const snap = await getDocs(collection(db, `users/${uid}/friends`));
@@ -195,21 +208,21 @@ async function loadFriends(uid) {
             div.innerHTML = `<img src="${f.avatar}"><span>${f.username}</span>`;
             friendsContainer.appendChild(div);
         });
-    } catch(e) { console.error("Ошибка друзей", e); }
+    } catch(e) { console.error("Err friends", e); }
 }
 
-// Управление меню
-moreBtn.addEventListener('click', () => moreMenuPopup.classList.toggle('active'));
-openSettingsBtn.addEventListener('click', () => {
+// Меню
+if(moreBtn) moreBtn.addEventListener('click', () => moreMenuPopup.classList.toggle('active'));
+if(openSettingsBtn) openSettingsBtn.addEventListener('click', () => {
     moreMenuPopup.classList.remove('active');
     settingsModal.classList.remove('hidden');
 });
-logoutBtn.addEventListener('click', () => {
+if(logoutBtn) logoutBtn.addEventListener('click', () => {
     signOut(auth).then(() => window.location.href = "index.html");
 });
 
 // Настройки
-saveNickBtn.addEventListener('click', async () => {
+if(saveNickBtn) saveNickBtn.addEventListener('click', async () => {
     const newName = editNickInput.value.trim();
     if(newName.length < 3) return alert("Min 3 chars");
     await updateDoc(doc(db, "users", currentUser.uid), { username: newName });
@@ -218,20 +231,20 @@ saveNickBtn.addEventListener('click', async () => {
     alert("Saved!");
 });
 
-saveDateBtn.addEventListener('click', async () => {
+if(saveDateBtn) saveDateBtn.addEventListener('click', async () => {
     const date = birthDateInput.value;
     if(!date) return;
     await updateDoc(doc(db, "users", currentUser.uid), { birthDate: date });
     alert("Saved!");
 });
 
-verifyEmailBtn.addEventListener('click', () => {
+if(verifyEmailBtn) verifyEmailBtn.addEventListener('click', () => {
     sendEmailVerification(currentUser)
         .then(() => alert(`Email sent to ${currentUser.email}`))
         .catch(e => alert(e.message));
 });
 
-closeSettings.addEventListener('click', () => settingsModal.classList.add('hidden'));
+if(closeSettings) closeSettings.addEventListener('click', () => settingsModal.classList.add('hidden'));
 
 // Уведомления
 function listenForNotifications(uid) {
@@ -241,34 +254,35 @@ function listenForNotifications(uid) {
         snap.forEach(d => reqs.push({id: d.id, ...d.data()}));
         
         if (reqs.length > 0) {
-            notifBadge.style.display = "block";
-            notifBadge.innerText = reqs.length;
-            notifDropdown.innerHTML = "";
-            const t = translations[currentLang];
-            
-            reqs.forEach(r => {
-                const el = document.createElement('div');
-                el.className = 'request-item';
-                el.innerHTML = `
-                    <img src="${r.fromAvatar}">
-                    <div style="flex:1; font-size:12px;"><b>${r.fromName}</b><br>${t.req}</div>
-                    <div class="req-actions">
-                        <button class="btn-accept" id="acc-${r.id}">✔</button>
-                        <button class="btn-decline" id="dec-${r.id}">✖</button>
-                    </div>`;
-                notifDropdown.appendChild(el);
-                
-                document.getElementById(`acc-${r.id}`).onclick = () => acceptReq(r);
-                document.getElementById(`dec-${r.id}`).onclick = () => declineReq(r.id);
-            });
+            if(notifBadge) {
+                notifBadge.style.display = "block";
+                notifBadge.innerText = reqs.length;
+            }
+            if(notifDropdown) {
+                notifDropdown.innerHTML = "";
+                const t = translations[currentLang];
+                reqs.forEach(r => {
+                    const el = document.createElement('div');
+                    el.className = 'request-item';
+                    el.innerHTML = `
+                        <img src="${r.fromAvatar}">
+                        <div style="flex:1; font-size:12px;"><b>${r.fromName}</b><br>${t.req}</div>
+                        <div class="req-actions">
+                            <button class="btn-accept" id="acc-${r.id}">✔</button>
+                            <button class="btn-decline" id="dec-${r.id}">✖</button>
+                        </div>`;
+                    notifDropdown.appendChild(el);
+                    document.getElementById(`acc-${r.id}`).onclick = () => acceptReq(r);
+                    document.getElementById(`dec-${r.id}`).onclick = () => declineReq(r.id);
+                });
+            }
         } else {
-            notifBadge.style.display = "none";
-            notifDropdown.innerHTML = `<p class="empty-msg">${translations[currentLang].noReq}</p>`;
+            if(notifBadge) notifBadge.style.display = "none";
+            if(notifDropdown) notifDropdown.innerHTML = `<p class="empty-msg">${translations[currentLang].noReq}</p>`;
         }
     });
 }
 
-// Принятие/Отклонение
 async function acceptReq(r) {
     try {
         await setDoc(doc(db, `users/${currentUser.uid}/friends/${r.from}`), { uid: r.from, username: r.fromName, avatar: r.fromAvatar });
@@ -282,13 +296,13 @@ async function declineReq(reqId) {
     await deleteDoc(doc(db, "friend_requests", reqId));
 }
 
-notifBtn.addEventListener('click', () => notifDropdown.classList.toggle('active'));
+if(notifBtn) notifBtn.addEventListener('click', () => notifDropdown.classList.toggle('active'));
 
 // Поиск
-openSearchBtn.addEventListener('click', () => searchModal.classList.remove('hidden'));
-closeModal.addEventListener('click', () => searchModal.classList.add('hidden'));
+if(openSearchBtn) openSearchBtn.addEventListener('click', () => searchModal.classList.remove('hidden'));
+if(closeModal) closeModal.addEventListener('click', () => searchModal.classList.add('hidden'));
 
-searchActionBtn.addEventListener('click', async () => {
+if(searchActionBtn) searchActionBtn.addEventListener('click', async () => {
     const txt = searchInput.value.toLowerCase();
     searchResults.innerHTML = "...";
     try {
@@ -298,7 +312,6 @@ searchActionBtn.addEventListener('click', async () => {
             const u = d.data();
             if(u.uid === currentUser.uid) return;
             if(txt && !u.username.toLowerCase().includes(txt)) return;
-
             const el = document.createElement('div');
             el.className = 'player-search-card';
             el.innerHTML = `
@@ -306,7 +319,6 @@ searchActionBtn.addEventListener('click', async () => {
                 <div style="flex:1"><h4>${u.username}</h4></div>
                 <button class="add-conn-btn">Add</button>`;
             searchResults.appendChild(el);
-            
             el.querySelector('.add-conn-btn').onclick = async (e) => {
                 e.target.innerText = "...";
                 await addDoc(collection(db, "friend_requests"), {
